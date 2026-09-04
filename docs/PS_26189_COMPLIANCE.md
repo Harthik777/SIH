@@ -65,7 +65,7 @@ The geographic view uses a deterministic operational display grid because the su
 
 - Backend: 33 local API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and claim-bounded evaluation, source-derived analytics, TRACE proof outputs, five-pattern fusion assurance, temporal emergence, per-edge record provenance, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, exports, and credential rejection.
 - Hybrid integration: a dedicated CI job starts real PostgreSQL and Neo4j services, persists two graphs with colliding local IDs, retrieves them independently, checks record digests, and deletes them.
-- Frontend: 4 component tests covering the command center, private login, explainable briefing, and interactive Fusion Room.
+- Frontend: 5 component tests covering the command center and case-first navigation, private login, explainable briefing, interactive Fusion Room, and persistent workspace preferences.
 - Production frontend build passes under React 19.2 and supported Vite 6.4.
 - Frontend dependency audit reports zero known vulnerabilities.
 - Flagship demo: 32 synthetic records → 64 entities → 148 fully provenanced relationships; 14/14 entity checkpoints, 6/6 relation checkpoints, 5/5 computed patterns, hidden path recovered, zero false merges.

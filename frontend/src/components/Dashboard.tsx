@@ -43,7 +43,7 @@ export function Dashboard({ graph, alerts, selected, onSelect, investigationId, 
   return (
     <div className="dashboard-page">
       <div className="page-heading">
-        <div><span className="eyebrow">COMMAND CENTER · 04 SEP 2026</span><h1>Investigation overview</h1><p>{investigationName} — Connected crime pattern analysis</p></div>
+        <div><span className="eyebrow">COMMAND CENTER · EVIDENCE SNAPSHOT</span><h1>Investigation overview</h1><p>{investigationName} — Connected crime pattern analysis</p></div>
         <div className="heading-actions"><span className="offline-badge"><i/> OFFLINE VERIFIED</span><button className="secondary-button" onClick={shareCase}>{shared ? <Check size={14}/> : <Share2 size={14}/>} {shared ? 'Copied' : 'Share case'}</button><button className="primary-button" onClick={openAnalysis}><ScanSearch size={15}/> Review analysis</button></div>
       </div>
       <div className="stats-grid">

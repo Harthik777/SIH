@@ -37,6 +37,7 @@ export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount }
       className={`nav-item ${section === id ? 'active' : ''}`}
       onClick={() => onChange(id)}
       title={collapsed ? label : undefined}
+      aria-current={section === id ? 'page' : undefined}
     >
       <Icon size={18} strokeWidth={1.8} />
       {!collapsed && <span>{label}</span>}
@@ -47,7 +48,7 @@ export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount }
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-brand"><Logo compact={collapsed} /></div>
-      <nav>
+      <nav aria-label="Sentinel workspace">
         {!collapsed && <span className="nav-label">INVESTIGATE</span>}
         {primary.map(renderItem)}
         {!collapsed && <span className="nav-label intelligence-label">INTELLIGENCE</span>}
@@ -59,7 +60,7 @@ export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount }
           {!collapsed && <div><strong>Evidence verified</strong><small>Local provenance manifest</small></div>}
           {!collapsed && <i />}
         </div>
-        <button className={`nav-item ${section === 'settings' ? 'active' : ''}`} onClick={() => onChange('settings')}>
+        <button className={`nav-item ${section === 'settings' ? 'active' : ''}`} aria-label={collapsed ? 'Settings' : undefined} title={collapsed ? 'Settings' : undefined} aria-current={section === 'settings' ? 'page' : undefined} onClick={() => onChange('settings')}>
           <Settings size={18} strokeWidth={1.8} />
           {!collapsed && <span>Settings</span>}
         </button>
@@ -67,11 +68,10 @@ export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount }
           <div className="analyst">
             <div className="avatar">AK</div>
             <div><strong>Alex Kim</strong><small><ShieldCheck size={12} /> Lead analyst</small></div>
-            <button aria-label="Account menu">•••</button>
           </div>
         )}
       </div>
-      <button className="collapse-btn" onClick={onCollapse} aria-label="Collapse sidebar"><ChevronLeft size={15} /></button>
+      <button className="collapse-btn" onClick={onCollapse} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}><ChevronLeft size={15} /></button>
     </aside>
   )
 }

@@ -86,7 +86,7 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Append-only SHA-256 audit chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and demo resets
 - Repeatable demonstration controls with stage-one start, safe reset, offline readiness, and integrity verification
 - Reproducible 10k/100k synthetic scale benchmark with build time, throughput, Python allocation peak, search latency, and path latency
-- Interactive Cytoscape knowledge graph with search, type filters, layouts, zoom, and entity dossiers
+- Interactive Cytoscape knowledge graph with a readable two-hop focused view, full-network toggle, contextual search, type filters, layouts, zoom, and entity dossiers
 - Source-derived timeline and police-beat concentration views with non-GPS proxy coordinates labelled explicitly
 - Active-graph risk scoring, anomaly triage, persisted-in-session alert acknowledgement, and natural-language explanations
 - Key-individual rankings using degree, deterministic sampled betweenness, reach, and composite influence
@@ -98,7 +98,9 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - TRACE proof-carrying intelligence with observed connection paths, temporal motifs, counterfactual risk checks, explicit alternative explanations, and deterministic SHA-256 receipts
 - Conservative entity resolution that surfaces supporting and conflicting signals, prevents name-only auto-merges, and reserves identity decisions for humans
 - JSON, GraphML, CSV, GeoJSON, and generated PDF exports
-- Dark/light themes and responsive navigation
+- Persistent case workflow showing the active case, investigation stage, open-signal count, and one next-best action on every route
+- Projector-readable hierarchy, stronger contrast, 40–44 px controls, keyboard search, skip navigation, labelled filters, browser history, and responsive layouts verified at a 430 px viewport
+- Dark/light themes, recoverable lazy-module failures, and locally persisted workspace preferences
 - Signed JWT sessions, analyst/supervisor route enforcement, audited login, password-hash support, and a private login screen
 - Request rate limiting, request IDs, liveness/readiness probes, Prometheus-compatible metrics, CSP/HSTS headers, and CSV-formula neutralization
 - Bounded text ingestion that rejects executable/archive masquerading, binary NUL content, XML entity declarations, oversized records, columns, and fields
@@ -223,7 +225,7 @@ The API includes all requested route groups:
 
 ## September 2026 frontend baseline
 
-The UI uses React 19.2.8. Vite is pinned to the supported 6.4 security-maintenance line because the target machine currently runs Node 20.16; this avoids requiring a machine-wide Node upgrade while retaining security patches. Vitest 3.2.7 replaces the vulnerable older test runtime, and `npm audit` reports zero known frontend dependency vulnerabilities.
+The UI uses React 19.2.8. Vite is pinned to the supported 6.4 security-maintenance line because the target machine currently runs Node 20.16; this avoids requiring a machine-wide Node upgrade while retaining security patches. Vitest 3.2.7 replaces the vulnerable older test runtime, and `npm audit` reports zero known frontend dependency vulnerabilities. The final-round UX pass also verifies all eleven routes at a true 430 px viewport with no document-level horizontal overflow or visible interactive target below 40 px.
 
 ## Tests
 

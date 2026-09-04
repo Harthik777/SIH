@@ -34,8 +34,8 @@ export function AlertsPage({ initialAlerts, nodes, onAlertsChange, onAcknowledge
       </div>
       <section className="panel alerts-table-panel">
         <div className="alert-toolbar">
-          <div className="segmented">{(['all','open','acknowledged'] as const).map(item=><button key={item} className={filter===item?'active':''} onClick={()=>setFilter(item)}>{item}<em>{item==='all'?initialAlerts.length:item==='open'?initialAlerts.filter(a=>!a.acknowledged).length:initialAlerts.filter(a=>a.acknowledged).length}</em></button>)}</div>
-          <div className="toolbar-search"><Search size={14}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search alerts…"/></div><span className="filter-button"><Filter size={14}/> {visible.length} shown</span>
+          <div className="segmented" aria-label="Alert status filter">{(['all','open','acknowledged'] as const).map(item=><button key={item} aria-pressed={filter===item} className={filter===item?'active':''} onClick={()=>setFilter(item)}>{item}<em>{item==='all'?initialAlerts.length:item==='open'?initialAlerts.filter(a=>!a.acknowledged).length:initialAlerts.filter(a=>a.acknowledged).length}</em></button>)}</div>
+          <div className="toolbar-search"><Search size={14}/><input aria-label="Search alerts" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search alerts…"/></div><span className="filter-button"><Filter size={14}/> {visible.length} shown</span>
         </div>
         <div className="alert-list">
           {visible.map(alert=>{

@@ -19,7 +19,7 @@
 | Tamper-evident audit | Valid | `/api/audit/verify` recalculates sequence, previous hash, and content hash |
 | Larger supplied corpus | 500 records | 1,530 nodes and 2,127 relationships |
 | Backend verification | 33 tests passed, 1 integration test conditionally skipped locally | `pytest -q`; hybrid test runs with service containers in CI |
-| Frontend verification | 4 tests passed | `npm test` |
+| Frontend verification | 5 tests passed | `npm test`; all eleven routes also pass a 430 px viewport overflow/target-size audit |
 | Private access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
 | Model evaluation | Leakage-audited, claim-bounded | Perfect reproduction result quarantined; ten-trial 20% evidence-masking stress F1 `0.825` mean (`0.780–0.849`); field accuracy not established |
 | Hybrid persistence | CI-verified | Real PostgreSQL and Neo4j round trip with two case-isolated graphs |
