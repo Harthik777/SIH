@@ -10,8 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .config import get_settings
 
-AUDIT_PATH = Path(__file__).resolve().parent.parent / "data" / "investigations" / "audit_chain.jsonl"
+AUDIT_PATH = get_settings().audit_path
 GENESIS_HASH = "0" * 64
 _LOCK = threading.RLock()
 

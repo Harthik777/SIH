@@ -1,18 +1,19 @@
-"""Production persistence adapters.
+"""PostgreSQL catalogue and case-scoped Neo4j persistence adapters.
 
-The API runs with an in-memory demo store by default. These models and repository
-classes are the deployment seam used when PostgreSQL and Neo4j are enabled.
+The lightweight profile uses atomic local snapshots. The private Docker profile
+activates these adapters and retains the snapshots as a recovery layer.
 """
 
 from datetime import datetime
+from functools import lru_cache
 from typing import Any
 
 from neo4j import GraphDatabase
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, func, text, update
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from .config import get_settings
-from .models import GraphEdge, GraphNode, GraphPayload
+from .models import GraphEdge, GraphNode, GraphPayload, UploadRecord
 
 
 class Base(DeclarativeBase):
@@ -50,16 +51,24 @@ class ProcessingLog(Base):
 
 class Investigation(Base):
     __tablename__ = "investigations"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
-    graph_version: Mapped[str] = mapped_column(String(64))
+    source: Mapped[str] = mapped_column(String(255))
+    source_type: Mapped[str] = mapped_column(String(64))
+    source_sha256: Mapped[str] = mapped_column(String(64))
+    owner: Mapped[str] = mapped_column(String(320), index=True)
+    node_count: Mapped[int] = mapped_column(Integer, default=0)
+    edge_count: Mapped[int] = mapped_column(Integer, default=0)
+    graph_version: Mapped[str] = mapped_column(String(64), default="1")
+    active: Mapped[bool] = mapped_column(Boolean, default=False)
+    details: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class AlertRecord(Base):
     __tablename__ = "alerts"
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    investigation_id: Mapped[int | None] = mapped_column(ForeignKey("investigations.id"))
+    investigation_id: Mapped[str | None] = mapped_column(ForeignKey("investigations.id"))
     anomaly_type: Mapped[str] = mapped_column(String(120))
     risk_score: Mapped[int] = mapped_column(Integer)
     evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
@@ -88,7 +97,9 @@ class Neo4jGraphRepository:
 
     def ensure_schema(self) -> None:
         queries = [
-            "CREATE CONSTRAINT entity_id IF NOT EXISTS FOR (e:Entity) REQUIRE e.id IS UNIQUE",
+            "DROP CONSTRAINT entity_id IF EXISTS",
+            "CREATE CONSTRAINT entity_key IF NOT EXISTS FOR (e:Entity) REQUIRE e.key IS UNIQUE",
+            "CREATE INDEX entity_investigation IF NOT EXISTS FOR (e:Entity) ON (e.investigation_id)",
             "CREATE INDEX entity_name IF NOT EXISTS FOR (e:Entity) ON (e.name)",
             "CREATE INDEX entity_type IF NOT EXISTS FOR (e:Entity) ON (e.type)",
             "CREATE INDEX entity_risk IF NOT EXISTS FOR (e:Entity) ON (e.risk)",
@@ -97,29 +108,172 @@ class Neo4jGraphRepository:
             for query in queries:
                 session.run(query).consume()
 
-    def replace_graph(self, graph: GraphPayload, batch_size: int = 1000) -> None:
-        nodes = [item.model_dump() for item in graph.nodes]
-        edges = [item.model_dump() for item in graph.edges]
+    def replace_graph(self, graph: GraphPayload, investigation_id: str = "default", batch_size: int = 1000) -> None:
+        nodes = [
+            {"key": f"{investigation_id}:{item.id}", "props": {**item.model_dump(), "entity_id": item.id, "investigation_id": investigation_id}}
+            for item in graph.nodes
+        ]
+        edges = [
+            {
+                "key": f"{investigation_id}:{item.id}",
+                "source_key": f"{investigation_id}:{item.source}",
+                "target_key": f"{investigation_id}:{item.target}",
+                "props": {**item.model_dump(), "edge_id": item.id, "investigation_id": investigation_id},
+            }
+            for item in graph.edges
+        ]
         with self.driver.session() as session:
+            session.run("MATCH (e:Entity {investigation_id: $investigation_id}) DETACH DELETE e", investigation_id=investigation_id).consume()
             for start in range(0, len(nodes), batch_size):
                 session.run(
-                    "UNWIND $rows AS row MERGE (e:Entity {id: row.id}) SET e += row",
+                    "UNWIND $rows AS row MERGE (e:Entity {key: row.key}) SET e += row.props, e.key = row.key",
                     rows=nodes[start : start + batch_size],
                 ).consume()
             for start in range(0, len(edges), batch_size):
                 session.run(
-                    "UNWIND $rows AS row MATCH (a:Entity {id: row.source}), (b:Entity {id: row.target}) "
-                    "MERGE (a)-[r:RELATES_TO {id: row.id}]->(b) SET r += row",
+                    "UNWIND $rows AS row MATCH (a:Entity {key: row.source_key}), (b:Entity {key: row.target_key}) "
+                    "MERGE (a)-[r:RELATES_TO {key: row.key}]->(b) SET r += row.props, r.key = row.key",
                     rows=edges[start : start + batch_size],
                 ).consume()
 
-    def subgraph(self, limit: int = 1500) -> GraphPayload:
+    def subgraph(self, investigation_id: str = "default", limit: int = 1500) -> GraphPayload:
         with self.driver.session() as session:
-            node_rows = session.run("MATCH (n:Entity) RETURN properties(n) AS node LIMIT $limit", limit=limit).data()
-            ids = [row["node"]["id"] for row in node_rows]
-            edge_rows = session.run(
-                "MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity) WHERE a.id IN $ids AND b.id IN $ids RETURN properties(r) AS edge",
-                ids=ids,
+            node_rows = session.run(
+                "MATCH (n:Entity {investigation_id: $investigation_id}) RETURN properties(n) AS node LIMIT $limit",
+                investigation_id=investigation_id,
+                limit=limit,
             ).data()
-        return GraphPayload(nodes=[GraphNode(**row["node"]) for row in node_rows], edges=[GraphEdge(**row["edge"]) for row in edge_rows])
+            keys = [row["node"]["key"] for row in node_rows]
+            edge_rows = session.run(
+                "MATCH (a:Entity)-[r:RELATES_TO]->(b:Entity) WHERE a.key IN $keys AND b.key IN $keys RETURN properties(r) AS edge",
+                keys=keys,
+            ).data()
+        node_values = [{key: value for key, value in row["node"].items() if key not in {"key", "entity_id", "investigation_id"}} for row in node_rows]
+        edge_values = [{key: value for key, value in row["edge"].items() if key not in {"key", "edge_id", "investigation_id"}} for row in edge_rows]
+        return GraphPayload(nodes=[GraphNode(**row) for row in node_values], edges=[GraphEdge(**row) for row in edge_values])
 
+
+@lru_cache(maxsize=1)
+def _engine():
+    return create_engine(get_settings().database_url, pool_pre_ping=True)
+
+
+@lru_cache(maxsize=1)
+def _session_factory() -> sessionmaker[Session]:
+    return sessionmaker(_engine(), expire_on_commit=False)
+
+
+def initialize_persistence() -> None:
+    Base.metadata.create_all(_engine())
+    repository = Neo4jGraphRepository()
+    try:
+        repository.ensure_schema()
+    finally:
+        repository.close()
+
+
+def persist_investigation(entry: dict[str, Any], graph: GraphPayload) -> None:
+    repository = Neo4jGraphRepository()
+    try:
+        repository.replace_graph(graph, entry["id"])
+    finally:
+        repository.close()
+    with _session_factory()() as session:
+        record = session.get(Investigation, entry["id"]) or Investigation(id=entry["id"])
+        record.name = entry["name"]
+        record.source = entry["source"]
+        record.source_type = entry["source_type"]
+        record.source_sha256 = entry["source_sha256"]
+        record.owner = entry.get("owner", "local-analyst")
+        record.node_count = int(entry.get("nodes", len(graph.nodes)))
+        record.edge_count = int(entry.get("edges", len(graph.edges)))
+        record.active = bool(entry.get("active"))
+        record.details = {"classification": entry.get("classification"), "access_scope": entry.get("access_scope")}
+        session.add(record)
+        session.commit()
+
+
+def set_persisted_active(investigation_id: str) -> None:
+    with _session_factory()() as session:
+        session.execute(update(Investigation).values(active=False))
+        record = session.get(Investigation, investigation_id)
+        if record:
+            record.active = True
+        session.commit()
+
+
+def delete_persisted_investigation(investigation_id: str) -> None:
+    repository = Neo4jGraphRepository()
+    try:
+        with repository.driver.session() as neo_session:
+            neo_session.run("MATCH (e:Entity {investigation_id: $investigation_id}) DETACH DELETE e", investigation_id=investigation_id).consume()
+    finally:
+        repository.close()
+    with _session_factory()() as session:
+        record = session.get(Investigation, investigation_id)
+        if record:
+            session.delete(record)
+            session.commit()
+
+
+def persistence_health() -> dict[str, bool]:
+    with _session_factory()() as session:
+        session.execute(text("SELECT 1"))
+    repository = Neo4jGraphRepository()
+    try:
+        with repository.driver.session() as neo_session:
+            neo_session.run("RETURN 1 AS ok").consume()
+    finally:
+        repository.close()
+    return {"postgresql": True, "neo4j": True}
+
+
+def persist_upload(upload: UploadRecord, actor_email: str, actor_role: str = "analyst") -> None:
+    with _session_factory()() as session:
+        user = session.query(User).filter(User.email == actor_email).one_or_none()
+        if user is None:
+            user = User(email=actor_email, password_hash="external-config", role=actor_role, is_active=True)
+            session.add(user)
+            session.flush()
+        record = session.get(Upload, upload.id) or Upload(id=upload.id)
+        record.filename = upload.filename
+        record.size = upload.size
+        record.status = upload.status
+        record.records = upload.records
+        record.created_at = upload.created_at
+        record.user_id = user.id
+        session.add(record)
+        session.commit()
+
+
+def update_persisted_upload(upload: UploadRecord) -> None:
+    with _session_factory()() as session:
+        record = session.get(Upload, upload.id)
+        if record:
+            record.status = upload.status
+            record.records = upload.records
+            session.commit()
+
+
+def load_persisted_uploads() -> list[UploadRecord]:
+    with _session_factory()() as session:
+        rows = session.query(Upload).order_by(Upload.created_at.desc()).all()
+        return [
+            UploadRecord(
+                id=row.id,
+                filename=row.filename,
+                size=row.size,
+                status=row.status,
+                records=row.records,
+                created_at=row.created_at,
+            )
+            for row in rows
+        ]
+
+
+def delete_persisted_upload(upload_id: str) -> None:
+    with _session_factory()() as session:
+        record = session.get(Upload, upload_id)
+        if record:
+            session.delete(record)
+            session.commit()

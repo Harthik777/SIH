@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-04T17:38:55.266503+00:00",
+  "classification": "supplied-corpus-model-evaluation",
+  "environment": {
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0"
+  },
+  "dataset": {
+    "source": "crime_dataset.csv transformed into crime_kg_nodes_edges.json",
+    "suspects": 434,
+    "positive_suspects": 61,
+    "label_definition": "positive when a suspect is connected to at least two case nodes"
+  },
+  "graphsage": {
+    "runtime_mode": "graphsage-inference",
+    "threshold": 0.5,
+    "metrics_on_full_supplied_graph": {
+      "true_positive": 61,
+      "true_negative": 373,
+      "false_positive": 0,
+      "false_negative": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "accuracy": 1.0
+    },
+    "brier_score": 0.096398,
+    "reported_reproduced_validation_f1": 1.0
+  },
+  "fixed_baselines": {
+    "risk_score_at_least_70": {
+      "true_positive": 43,
+      "true_negative": 145,
+      "false_positive": 228,
+      "false_negative": 18,
+      "precision": 0.158672,
+      "recall": 0.704918,
+      "f1": 0.259036,
+      "accuracy": 0.43318
+    },
+    "graph_degree_at_least_4": {
+      "true_positive": 6,
+      "true_negative": 373,
+      "false_positive": 0,
+      "false_negative": 55,
+      "precision": 1.0,
+      "recall": 0.098361,
+      "f1": 0.179104,
+      "accuracy": 0.873272
+    }
+  },
+  "decision_policy": "Model outputs are prioritization signals; no automated identity, guilt, arrest, or enforcement decision is permitted.",
+  "limitations": [
+    "The labels are structural proxy labels derived from the same graph, not independently adjudicated criminal outcomes.",
+    "The supplied corpus is demonstration data and does not establish field generalization, fairness, or causal validity.",
+    "Thresholds were not tuned on the reported full-graph metrics; external labelled evaluation is required before operational use.",
+    "Protected-person nodes are excluded from model features and predictions."
+  ]
+}

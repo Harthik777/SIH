@@ -13,6 +13,10 @@ services:
         value: production-public-demo
       - key: SENTINEL_PUBLIC_DEMO
         value: "true"
+      - key: SENTINEL_AUTH_MODE
+        value: optional
+      - key: SENTINEL_RATE_LIMIT_PER_MINUTE
+        value: "240"
       - key: SENTINEL_ALLOWED_ORIGINS
         value: https://sentinel-sih-26189-harthik.onrender.com
       - key: SENTINEL_SECRET_KEY

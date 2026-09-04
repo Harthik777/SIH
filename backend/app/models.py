@@ -71,6 +71,7 @@ class PipelineStage(BaseModel):
 class PipelineState(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     upload_id: str
+    requested_by: str = "local-analyst"
     activate: bool = True
     status: str = "queued"
     progress: int = 0

@@ -37,7 +37,10 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 - Investigation actions form an append-only SHA-256 chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and resets; `/api/audit/verify` detects content or linkage changes.
 - API responses use no-store, no-sniff, frame-deny, no-referrer, and restrictive permissions headers.
 - The frontend deployment includes a Content Security Policy.
-- Arbitrary login credentials are rejected; demo credentials and signing secrets are environment-configurable.
+- Private mode requires signed JWT sessions on non-health APIs; server-side analyst/supervisor permissions guard mutations and protected-person reveal.
+- Arbitrary credentials are rejected; PBKDF2 password hashes, credential rotation, token lifetime, signing secret, and exact origins are environment-configurable.
+- Request rate limiting, request IDs, liveness/readiness probes, operational metrics, HSTS, CSV-formula neutralization, and guarded XML/text ingestion are implemented.
+- Private Docker deployment uses a durable state volume, PostgreSQL investigation catalogue, and case-scoped Neo4j graph keys.
 - GraphSAGE checkpoints load with `weights_only=True`.
 - The model refuses inference on out-of-training-schema graphs and shows a structural preview instead.
 - Protected-person nodes are removed before all model feature generation and can never receive model probabilities.
@@ -58,8 +61,8 @@ The geographic view uses a deterministic operational display grid because the su
 
 ## Verified acceptance checks
 
-- Backend: 25 API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior, source-derived analytics, TRACE proof outputs, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, safe reset, provenance, exports, and credential rejection.
-- Frontend: 3 component tests covering the command center, explainable briefing, and interactive Fusion Room.
+- Backend: 29 API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and model evaluation, source-derived analytics, TRACE proof outputs, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, exports, and credential rejection.
+- Frontend: 4 component tests covering the command center, private login, explainable briefing, and interactive Fusion Room.
 - Production frontend build passes under React 19.2 and supported Vite 6.4.
 - Frontend dependency audit reports zero known vulnerabilities.
 - Flagship demo: 32 synthetic records → 64 entities → 148 relationships; 14/14 entity checkpoints, 6/6 relation checkpoints, hidden path recovered, zero false merges.
@@ -68,4 +71,4 @@ The geographic view uses a deterministic operational display grid because the su
 
 ## Deployment boundary
 
-The complete React/FastAPI product can run from one public Docker web service for the internal round. Its public mode is synthetic-only and blocks uploads; free-host filesystem changes are ephemeral. This remains a competition prototype—not a certified law-enforcement system. Multi-user operational deployment still requires agency identity integration, malware scanning, key management, database adapter activation, retention policy, jurisdiction-specific privacy controls, independent model validation, and red-team/security accreditation.
+The complete React/FastAPI product runs from one public Docker web service for the internal round. Its public mode is synthetic-only and blocks uploads; free-host filesystem changes are ephemeral. The private single-machine profile is an operational pilot with authenticated roles, durable state, PostgreSQL/Neo4j persistence, backup and monitoring—not a certified law-enforcement system. Agency deployment still requires identity-provider integration, approved malware scanning, key management, retention policy, jurisdiction-specific privacy controls, independent model validation, and red-team/security accreditation.

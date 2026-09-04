@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { BrainCircuit, Braces, GitBranch, Network, Share2 } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api'
-import type { AnalyticsDistribution, CentralityResult, GraphData, GraphSageAnalysis, GraphSageResult, RiskTrendPoint } from '../types'
+import type { AnalyticsDistribution, CentralityResult, GraphData, GraphSageAnalysis, GraphSageResult, ModelEvaluation, RiskTrendPoint } from '../types'
 
 const palette = ['#ef6f84', '#5ca9ff', '#9b8cff', '#f18ec7', '#ff8a65', '#45d6b1', '#f6b85b']
 
@@ -12,10 +12,11 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
   const [trends, setTrends] = useState<RiskTrendPoint[]>([])
   const [metric, setMetric] = useState<CentralityResult['metric']>('degree')
   const [centrality, setCentrality] = useState<CentralityResult[]>([])
+  const [modelEvaluation, setModelEvaluation] = useState<ModelEvaluation | null>(null)
   useEffect(() => {
     let active = true
-    Promise.all([api.getGraphSageAnalysis(8), api.getAnalyticsDistribution(), api.getRiskTrends()]).then(([model, distribution, risk]) => {
-      if (active) { setGraphSage(model); setAnalytics(distribution); setTrends(risk) }
+    Promise.all([api.getGraphSageAnalysis(8), api.getAnalyticsDistribution(), api.getRiskTrends(), api.getModelEvaluation()]).then(([model, distribution, risk, evaluation]) => {
+      if (active) { setGraphSage(model); setAnalytics(distribution); setTrends(risk); setModelEvaluation(evaluation) }
     }).catch(() => undefined)
     return () => { active = false }
   }, [graph.nodes.length, graph.edges.length, investigationId])
@@ -74,6 +75,8 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
               <div><small>FEATURES</small><strong>7</strong><em>6 types + degree</em></div>
               <div><small>TRAINING GRAPH</small><strong>1,530</strong><em>nodes · 2,127 edges</em></div>
               <div><small>VALIDATION F1</small><strong>{(graphSage?.model.training_summary.reproduced_checkpoint?.validation_f1 ?? 1).toFixed(2)}</strong><em>{graphSage?.model.training_summary.reproduced_checkpoint ? 'reproduced checkpoint' : 'notebook-reported'}</em></div>
+              <div><small>BRIER SCORE</small><strong>{modelEvaluation?.graphsage.brier_score?.toFixed(3) ?? '—'}</strong><em>supplied corpus calibration</em></div>
+              <div><small>RISK BASELINE F1</small><strong>{modelEvaluation?.fixed_baselines.risk_score_at_least_70.f1.toFixed(2) ?? '—'}</strong><em>fixed transparent comparator</em></div>
             </div>
             <div className="graphsage-ranking">
               <div className="graphsage-heading"><strong>Top repeat-subject signals</strong><span>{graphSage?.mode === 'graphsage-inference' ? 'MODEL PROBABILITY' : 'STRUCTURAL PREVIEW'}</span></div>
@@ -83,7 +86,7 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
               })}
             </div>
           </div>
-          <p className="model-note">{graphSage?.message ?? 'GraphSAGE architecture loaded. The trained .pt checkpoint is required before this preview becomes model inference.'} Outputs support analyst review and must not be treated as evidence of guilt.</p>
+          <p className="model-note">{graphSage?.message ?? 'GraphSAGE architecture loaded. The trained .pt checkpoint is required before this preview becomes model inference.'} Labels are structural proxies—not independently adjudicated outcomes. Outputs support analyst review and must not be treated as evidence of guilt.</p>
         </section>
       </div>
     </div>

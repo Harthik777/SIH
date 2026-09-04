@@ -12,6 +12,7 @@ from typing import Any, Literal
 from uuid import uuid4
 
 from .audit_log import append_audit_event
+from .config import get_settings
 from .crime_pipeline import build_multisource_graph
 from .models import GraphPayload
 from .trace_engine import connection_path
@@ -20,7 +21,7 @@ from .trace_engine import connection_path
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 SURAKSHA_PATH = DATA_DIR / "operation_suraksha.json"
 GROUND_TRUTH_PATH = DATA_DIR / "operation_suraksha_ground_truth.json"
-DECISIONS_PATH = DATA_DIR / "investigations" / "suraksha_resolution_decisions.json"
+DECISIONS_PATH = get_settings().decisions_path
 SURAKSHA_ID = "operation-suraksha"
 _LOCK = threading.RLock()
 
@@ -238,6 +239,7 @@ def record_resolution_decision(
     candidate_id: str,
     decision: Literal["keep-separate", "escalate"],
     rationale: str,
+    actor: str = "local-analyst",
 ) -> dict[str, Any]:
     candidate = next((item for item in resolution_candidates() if item["id"] == candidate_id), None)
     if candidate is None:
@@ -258,11 +260,12 @@ def record_resolution_decision(
         "identity-resolution.decision",
         candidate_id,
         {"decision": decision, "rationale": rationale.strip(), "synthetic_fixture": True},
+        actor=actor,
     )
     return {**value, "receipt": _canonical_receipt({"candidate_id": candidate_id, **value}), "audit_hash": audit["hash"]}
 
 
-def reset_demo() -> dict[str, Any]:
+def reset_demo(actor: str = "local-analyst") -> dict[str, Any]:
     """Return the flagship exercise to stage one without deleting evidence."""
     with _LOCK:
         decision_count = len(_read_decisions())
@@ -271,6 +274,7 @@ def reset_demo() -> dict[str, Any]:
         "demo.reset",
         SURAKSHA_ID,
         {"cleared_identity_decisions": decision_count, "evidence_modified": False},
+        actor=actor,
     )
     return {
         "status": "ready",

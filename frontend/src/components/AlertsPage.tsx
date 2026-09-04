@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, Check, CheckCircle2, ChevronRight, Clock, Download, Filter, Search, ShieldAlert } from 'lucide-react'
+import { api } from '../api'
 import type { AlertItem, GraphNode, Severity } from '../types'
 
 interface Props {
@@ -24,7 +25,7 @@ export function AlertsPage({ initialAlerts, nodes, onAlertsChange, onAcknowledge
   const linkedEntities = new Set(initialAlerts.map((alert) => alert.entityId)).size
   return (
     <div className="standard-page">
-      <div className="page-heading"><div><span className="eyebrow">ACTIVE-DATASET MONITORING</span><h1>Alert center</h1><p>Triage deterministic risk signals with human verification.</p></div><a className="secondary-button" href="/api/export/data/csv?dataset=alerts" download><Download size={14}/> Export alert log</a></div>
+      <div className="page-heading"><div><span className="eyebrow">ACTIVE-DATASET MONITORING</span><h1>Alert center</h1><p>Triage deterministic risk signals with human verification.</p></div><button className="secondary-button" onClick={()=>void api.download('/api/export/data/csv?dataset=alerts','sentinel_alerts.csv')}><Download size={14}/> Export alert log</button></div>
       <div className="alert-summary-grid">
         <div className="critical"><ShieldAlert size={20}/><span><strong>{initialAlerts.filter(a=>a.severity==='critical').length}</strong><small>Critical</small></span><em>Immediate review</em></div>
         <div className="high"><AlertTriangle size={20}/><span><strong>{initialAlerts.filter(a=>a.severity==='high').length}</strong><small>High priority</small></span><em>&lt; 4 hour SLA</em></div>

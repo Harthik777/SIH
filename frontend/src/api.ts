@@ -1,13 +1,62 @@
 import { graphData } from './data/mockData'
-import type { AlertItem, AnalyticsDistribution, AuditVerification, CentralityResult, ConnectionPath, CounterfactualResult, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TimelineEvent, UploadRecord } from './types'
+import type { AlertItem, AnalyticsDistribution, AuditVerification, AuthUser, CentralityResult, ConnectionPath, CounterfactualResult, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, ModelEvaluation, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TimelineEvent, UploadRecord } from './types'
+
+const TOKEN_KEY = 'sentinel-access-token'
+
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message)
+  }
+}
+
+const requestOptions = (options: RequestInit = {}): RequestInit => {
+  const headers = new Headers(options.headers)
+  const token = localStorage.getItem(TOKEN_KEY)
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+  return { ...options, headers }
+}
 
 const json = async <T>(path: string, options?: RequestInit): Promise<T> => {
-  const response = await fetch(path, options)
-  if (!response.ok) throw new Error(`Request failed: ${response.status}`)
+  const response = await fetch(path, requestOptions(options))
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: string } | null
+    throw new ApiError(response.status, payload?.detail || `Request failed: ${response.status}`)
+  }
   return response.json() as Promise<T>
 }
 
 export const api = {
+  async getCurrentUser(): Promise<AuthUser> {
+    return json<AuthUser>('/api/auth/me')
+  },
+
+  async login(email: string, password: string): Promise<AuthUser> {
+    const result = await json<{ access_token: string; user: Omit<AuthUser, 'mode'> }>('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
+    localStorage.setItem(TOKEN_KEY, result.access_token)
+    return { ...result.user, mode: 'authenticated' }
+  },
+
+  logout() {
+    localStorage.removeItem(TOKEN_KEY)
+  },
+
+  async download(path: string, filename: string): Promise<void> {
+    const response = await fetch(path, requestOptions())
+    if (!response.ok) throw new ApiError(response.status, `Export failed: ${response.status}`)
+    const url = URL.createObjectURL(await response.blob())
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+  },
+
   async getGraph(): Promise<GraphData> {
     try {
       return await json<GraphData>('/api/visualization/graph')
@@ -127,6 +176,10 @@ export const api = {
 
   async getScaleBenchmark(): Promise<ScaleBenchmark> {
     return json<ScaleBenchmark>('/api/benchmarks/scale')
+  },
+
+  async getModelEvaluation(): Promise<ModelEvaluation> {
+    return json<ModelEvaluation>('/api/benchmarks/model')
   },
 
   async getInvestigations(): Promise<InvestigationWorkspace> {

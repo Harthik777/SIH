@@ -10,6 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
+from .config import get_settings
 from .models import PipelineStage, PipelineState, UploadRecord
 
 
@@ -26,9 +27,10 @@ STAGES = [
 ]
 
 
-def make_pipeline(upload_id: str, activate: bool = True) -> PipelineState:
+def make_pipeline(upload_id: str, activate: bool = True, requested_by: str = "local-analyst") -> PipelineState:
     return PipelineState(
         upload_id=upload_id,
+        requested_by=requested_by,
         activate=activate,
         stages=[PipelineStage(id=stage_id, name=name) for stage_id, name in STAGES],
         logs=["Pipeline queued for local execution."],
@@ -57,7 +59,34 @@ def _fingerprint(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_text_source(path: Path) -> None:
+    sample = path.read_bytes()[:1_048_576]
+    if sample.startswith((b"MZ", b"\x7fELF", b"PK\x03\x04")):
+        raise ValueError("Executable or archive content is not accepted as evidence text")
+    if b"\x00" in sample:
+        raise ValueError("Binary content is not accepted for this evidence format")
+
+
+def _validate_rows(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    settings = get_settings()
+    if len(rows) > settings.max_ingestion_records:
+        raise ValueError(f"Source exceeds the {settings.max_ingestion_records:,}-record safety limit")
+    normalized: list[dict[str, str]] = []
+    for row_number, row in enumerate(rows, 1):
+        if len(row) > settings.max_ingestion_columns:
+            raise ValueError(f"Record {row_number} exceeds the {settings.max_ingestion_columns}-column safety limit")
+        clean: dict[str, str] = {}
+        for key, value in row.items():
+            cell = "" if value is None else str(value)
+            if len(cell) > settings.max_cell_characters:
+                raise ValueError(f"Record {row_number} contains an oversized field")
+            clean[str(key)] = cell
+        normalized.append(clean)
+    return normalized
+
+
 def _profile(path: Path) -> tuple[dict[str, Any], list[dict[str, str]] | None]:
+    _validate_text_source(path)
     suffix = path.suffix.lower()
     profile: dict[str, Any] = {
         "format": suffix.removeprefix(".").upper(),
@@ -67,15 +96,24 @@ def _profile(path: Path) -> tuple[dict[str, Any], list[dict[str, str]] | None]:
     structured_rows: list[dict[str, str]] | None = None
 
     if suffix == ".csv":
+        settings = get_settings()
         with path.open("r", encoding="utf-8-sig", newline="") as handle:
-            structured_rows = list(csv.DictReader(handle))
+            reader = csv.DictReader(handle)
+            if len(reader.fieldnames or []) > settings.max_ingestion_columns:
+                raise ValueError(f"CSV exceeds the {settings.max_ingestion_columns}-column safety limit")
+            raw_rows: list[dict[str, Any]] = []
+            for row_number, row in enumerate(reader, 1):
+                if row_number > settings.max_ingestion_records:
+                    raise ValueError(f"CSV exceeds the {settings.max_ingestion_records:,}-record safety limit")
+                raw_rows.append(row)
+            structured_rows = _validate_rows(raw_rows)
         profile.update({"records": len(structured_rows), "columns": list(structured_rows[0]) if structured_rows else []})
     elif suffix == ".json":
         payload = json.loads(path.read_text(encoding="utf-8"))
         records = payload if isinstance(payload, list) else payload.get("records", []) if isinstance(payload, dict) else []
         profile.update({"records": len(records), "root_type": type(payload).__name__})
         if records and all(isinstance(row, dict) for row in records):
-            structured_rows = [{str(key): "" if value is None else str(value) for key, value in row.items()} for row in records]
+            structured_rows = _validate_rows(records)
     elif suffix == ".txt":
         text = path.read_text(encoding="utf-8")
         blocks = [block.strip() for block in re.split(r"\n\s*---\s*\n|\n\s*\n", text) if block.strip()]
@@ -93,6 +131,9 @@ def _profile(path: Path) -> tuple[dict[str, Any], list[dict[str, str]] | None]:
         text = path.read_text(encoding="utf-8")
         profile.update({"records": len(re.findall(r"\brdf:type\b|\ba\s+(?:owl|crime):", text)), "semantic_format": True})
     elif suffix == ".xml":
+        preamble = path.read_text(encoding="utf-8", errors="ignore")[:4096].casefold()
+        if "<!doctype" in preamble or "<!entity" in preamble:
+            raise ValueError("XML document type and entity declarations are not accepted")
         root = element_tree.parse(path).getroot()
         candidates = list(root) or [root]
         structured_rows = []
@@ -105,6 +146,7 @@ def _profile(path: Path) -> tuple[dict[str, Any], list[dict[str, str]] | None]:
                 row[key] = (element.text or "").strip()
             if row:
                 structured_rows.append(row)
+        structured_rows = _validate_rows(structured_rows)
         profile.update({"records": len(structured_rows), "root_element": root.tag, "extraction": "XML leaf-field mapper"})
     else:
         raise ValueError(f"Unsupported upload format: {suffix}")
@@ -183,6 +225,7 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
                 source_sha256=profile["sha256"],
                 upload_id=upload.id,
                 activate=state.activate,
+                owner=state.requested_by,
             )
             state.result["investigation"] = investigation
             from .audit_log import append_audit_event
@@ -195,6 +238,7 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
                     "records": investigation["records"],
                     "activated": investigation["active"],
                 },
+                actor=state.requested_by,
             )
             state.logs.append(
                 f"Investigation snapshot {investigation['id']} stored locally"
@@ -203,6 +247,10 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
         state.status = "complete"
         upload.status = "complete"
         upload.records = int(profile["records"])
+        if get_settings().persistence_mode == "hybrid":
+            from .database import update_persisted_upload
+
+            update_persisted_upload(upload)
         state.logs.append(f"Analysis complete: {risk_signals:,} high-priority review signal(s); provenance manifest recorded.")
     except Exception as exc:
         if current_stage:
@@ -210,6 +258,10 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
         state.status = "failed"
         state.error = f"{type(exc).__name__}: {exc}"
         upload.status = "failed"
+        if get_settings().persistence_mode == "hybrid":
+            from .database import update_persisted_upload
+
+            update_persisted_upload(upload)
         state.logs.append(f"Pipeline stopped safely: {state.error}")
     finally:
         _notify(pipeline_id)

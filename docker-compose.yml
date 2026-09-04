@@ -17,9 +17,22 @@ services:
       SENTINEL_NEO4J_USER: neo4j
       SENTINEL_NEO4J_PASSWORD: sentinel-password
       SENTINEL_REDIS_URL: redis://redis:6379/0
+      SENTINEL_PERSISTENCE_MODE: hybrid
       SENTINEL_ALLOWED_ORIGINS: http://localhost:5173
+      SENTINEL_AUTH_MODE: required
+      SENTINEL_SECRET_KEY: ${SENTINEL_SECRET_KEY:?Set SENTINEL_SECRET_KEY in .env}
+      SENTINEL_ANALYST_EMAIL: ${SENTINEL_ANALYST_EMAIL:-analyst@sentinel.local}
+      SENTINEL_ANALYST_PASSWORD: ${SENTINEL_ANALYST_PASSWORD:?Set SENTINEL_ANALYST_PASSWORD in .env}
+      SENTINEL_ANALYST_PASSWORD_HASH: ${SENTINEL_ANALYST_PASSWORD_HASH:-}
+      SENTINEL_SUPERVISOR_EMAIL: ${SENTINEL_SUPERVISOR_EMAIL:-supervisor@sentinel.local}
+      SENTINEL_SUPERVISOR_PASSWORD: ${SENTINEL_SUPERVISOR_PASSWORD:?Set SENTINEL_SUPERVISOR_PASSWORD in .env}
+      SENTINEL_SUPERVISOR_PASSWORD_HASH: ${SENTINEL_SUPERVISOR_PASSWORD_HASH:-}
+      SENTINEL_UPLOAD_DIR: /app/state/uploads
+      SENTINEL_INVESTIGATION_DIR: /app/state/investigations
+      SENTINEL_AUDIT_PATH: /app/state/audit/audit_chain.jsonl
+      SENTINEL_DECISIONS_PATH: /app/state/decisions/suraksha_resolution_decisions.json
     volumes:
-      - uploads:/app/data/uploads
+      - sentinel_state:/app/state
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,6 +54,12 @@ services:
       SENTINEL_NEO4J_URI: bolt://neo4j:7687
       SENTINEL_NEO4J_PASSWORD: sentinel-password
       SENTINEL_REDIS_URL: redis://redis:6379/0
+      SENTINEL_UPLOAD_DIR: /app/state/uploads
+      SENTINEL_INVESTIGATION_DIR: /app/state/investigations
+      SENTINEL_AUDIT_PATH: /app/state/audit/audit_chain.jsonl
+      SENTINEL_DECISIONS_PATH: /app/state/decisions/suraksha_resolution_decisions.json
+    volumes:
+      - sentinel_state:/app/state
     depends_on:
       redis:
         condition: service_healthy
@@ -90,8 +109,7 @@ services:
       retries: 10
 
 volumes:
-  uploads:
+  sentinel_state:
   postgres_data:
   neo4j_data:
   redis_data:
-

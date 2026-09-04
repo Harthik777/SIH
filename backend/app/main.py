@@ -3,22 +3,22 @@ from __future__ import annotations
 import asyncio
 import csv
 import hashlib
-import hmac
 import io
 import json
 import math
 import re
 import os
+import time
 from collections import Counter, defaultdict
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated, Any
+from uuid import uuid4
 
-import jwt
-from fastapi import BackgroundTasks, FastAPI, File, Header, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .audit_log import append_audit_event, audit_entries, verify_audit_chain
@@ -30,10 +30,12 @@ from .models import ConfigUpdate, GraphPayload, LoginRequest, PipelineRequest, P
 from .network_intelligence import centrality as calculate_centrality
 from .network_intelligence import degree_distribution, generated_alerts, locations as active_locations
 from .network_intelligence import risk_trend, structure_metrics, timeline as active_timeline
+from .operations import operations_monitor, rate_limiter
+from .security import Principal, authenticate, get_principal, issue_token, require_roles, resolve_principal
 from .state import make_pipeline, pipeline_events, pipelines, remove_upload_file, run_pipeline, uploads
 from .suraksha import evaluation as suraksha_evaluation
 from .protected_persons import masked_profiles, reveal_profile
-from .readiness import BENCHMARK_PATH, system_readiness
+from .readiness import BENCHMARK_PATH, MODEL_EVALUATION_PATH, system_readiness
 from .suraksha import record_resolution_decision, replay as suraksha_replay, reset_demo as reset_suraksha_demo, resolution_candidates
 from .trace_engine import connection_path, counterfactual, entity_trace, temporal_motifs
 
@@ -52,6 +54,17 @@ acknowledged_alerts: set[str] = set()
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
+    settings.investigation_dir.mkdir(parents=True, exist_ok=True)
+    settings.audit_path.parent.mkdir(parents=True, exist_ok=True)
+    if settings.auth_mode == "required" and not settings.production_secret_configured:
+        raise RuntimeError("SENTINEL_SECRET_KEY must contain at least 32 non-default characters when authentication is required")
+    if settings.auth_mode == "required" and not settings.private_credentials_configured:
+        raise RuntimeError("Replace the default analyst and supervisor credentials before enabling required authentication")
+    if settings.persistence_mode == "hybrid":
+        from .database import initialize_persistence, load_persisted_uploads
+
+        initialize_persistence()
+        uploads.update({item.id: item for item in load_persisted_uploads()})
     yield
 
 
@@ -78,6 +91,56 @@ async def security_headers(request, call_next):
     response.headers.setdefault("Referrer-Policy", "no-referrer")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
     response.headers.setdefault("Cache-Control", "no-store" if request.url.path.startswith("/api/") else "no-cache")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; "
+        "script-src 'self'; connect-src 'self' ws: wss:; font-src 'self'; object-src 'none'; "
+        "base-uri 'self'; frame-ancestors 'none'",
+    )
+    if request.headers.get("x-forwarded-proto", request.url.scheme) == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
+
+
+@app.middleware("http")
+async def operational_controls(request: Request, call_next):
+    started = time.perf_counter()
+    request_id = request.headers.get("x-request-id", str(uuid4()))[:128]
+    path = request.url.path
+    client = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+    if not client:
+        client = request.client.host if request.client else "unknown"
+    login_limited = path == "/api/auth/login" and not rate_limiter.allow(f"login:{client}", 10)
+    if login_limited or (path.startswith("/api/") and not rate_limiter.allow(client, settings.rate_limit_per_minute)):
+        response = JSONResponse(status_code=429, content={"detail": "Request rate limit exceeded"})
+    else:
+        protected_path = path.startswith("/api/") or path == "/metrics"
+        public_paths = {
+            "/api/auth/login",
+            "/api/health",
+            "/api/health/live",
+            "/api/health/ready",
+        }
+        if (
+            protected_path
+            and settings.auth_mode == "required"
+            and not settings.public_demo
+            and path not in public_paths
+            and request.method != "OPTIONS"
+        ):
+            try:
+                request.state.principal = resolve_principal(request.headers.get("authorization"))
+            except HTTPException as exc:
+                response = JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+            else:
+                response = await call_next(request)
+        else:
+            response = await call_next(request)
+    latency_ms = (time.perf_counter() - started) * 1000
+    if path.startswith("/api/") or path == "/metrics":
+        operations_monitor.observe(path, response.status_code, latency_ms)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Response-Time-Ms"] = f"{latency_ms:.3f}"
     return response
 
 
@@ -99,33 +162,47 @@ def node_or_404(node_id: str):
 @app.get("/api/health", tags=["system"])
 def health():
     payload = graph()
-    return {"status": "ok", "environment": settings.environment, "public_demo": settings.public_demo, "security_mode": "demo" if settings.secret_key == "replace-this-secret-in-production" else "configured", "entities": len(payload.nodes), "relationships": len(payload.edges)}
+    return {"status": "ok", "environment": settings.environment, "public_demo": settings.public_demo, "auth_mode": settings.auth_mode, "security_mode": "configured" if settings.production_secret_configured else "development-secret", "entities": len(payload.nodes), "relationships": len(payload.edges)}
+
+
+@app.get("/api/health/live", tags=["system"])
+def liveness():
+    return {"status": "alive"}
+
+
+@app.get("/api/health/ready", tags=["system"])
+def health_readiness():
+    result = system_readiness(settings.public_demo)
+    return JSONResponse(status_code=200 if result["ready"] else 503, content=result)
+
+
+@app.get("/api/system/metrics", tags=["system"])
+def operational_metrics():
+    return operations_monitor.snapshot()
+
+
+@app.get("/metrics", include_in_schema=False)
+def prometheus_metrics():
+    return Response(operations_monitor.prometheus(), media_type="text/plain; version=0.0.4")
 
 
 @app.post("/api/auth/login", tags=["authentication"])
 def login(credentials: LoginRequest):
-    email_valid = hmac.compare_digest(credentials.email.casefold(), settings.analyst_email.casefold())
-    password_valid = hmac.compare_digest(credentials.password, settings.analyst_password)
-    if not email_valid or not password_valid:
+    principal = authenticate(credentials.email, credentials.password)
+    if principal is None:
         raise HTTPException(status_code=401, detail="Invalid local credentials")
-    expires = datetime.now(timezone.utc) + timedelta(hours=8)
-    token = jwt.encode({"sub": credentials.email, "role": "analyst", "exp": expires}, settings.secret_key, algorithm="HS256")
-    return {"access_token": token, "token_type": "bearer", "expires_at": expires, "user": {"email": credentials.email, "role": "analyst"}, "security_mode": "demo" if settings.secret_key == "replace-this-secret-in-production" else "configured"}
+    token, expires = issue_token(principal)
+    append_audit_event("authentication.login", principal.email, {"role": principal.role}, actor=principal.email)
+    return {"access_token": token, "token_type": "bearer", "expires_at": expires, "user": {"email": principal.email, "role": principal.role}, "security_mode": "configured" if settings.production_secret_configured else "demo"}
 
 
 @app.get("/api/auth/me", tags=["authentication"])
-def current_user(authorization: Annotated[str | None, Header()] = None):
-    if not authorization or not authorization.startswith("Bearer "):
-        return {"email": "demo@sentinel.local", "role": "analyst", "mode": "demo"}
-    try:
-        payload = jwt.decode(authorization.removeprefix("Bearer "), settings.secret_key, algorithms=["HS256"])
-    except jwt.PyJWTError as exc:
-        raise HTTPException(status_code=401, detail="Invalid or expired token") from exc
-    return {"email": payload["sub"], "role": payload.get("role", "viewer"), "mode": "authenticated"}
+def current_user(principal: Annotated[Principal, Depends(get_principal)]):
+    return {"email": principal.email, "role": principal.role, "mode": principal.mode}
 
 
 @app.post("/api/upload", response_model=UploadRecord, tags=["data management"])
-async def upload_file(file: Annotated[UploadFile, File()]):
+async def upload_file(file: Annotated[UploadFile, File()], principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     if settings.public_demo:
         raise HTTPException(status_code=403, detail="Uploads are disabled on the public synthetic showcase. Run Sentinel privately for evidence ingestion.")
     filename = Path(file.filename or "upload").name
@@ -145,7 +222,11 @@ async def upload_file(file: Annotated[UploadFile, File()]):
             output.write(chunk)
     record.size = total
     uploads[record.id] = record
-    append_audit_event("evidence.upload", record.id, {"filename": filename, "bytes": total}, actor=settings.analyst_email)
+    if settings.persistence_mode == "hybrid":
+        from .database import persist_upload
+
+        persist_upload(record, principal.email, principal.role)
+    append_audit_event("evidence.upload", record.id, {"filename": filename, "bytes": total}, actor=principal.email)
     return record
 
 
@@ -162,18 +243,23 @@ def get_upload(upload_id: str):
 
 
 @app.delete("/api/upload/{upload_id}", status_code=204, tags=["data management"])
-def delete_upload(upload_id: str):
+def delete_upload(upload_id: str, principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     upload = uploads.pop(upload_id, None)
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload not found")
     remove_upload_file(settings.upload_dir, upload)
+    if settings.persistence_mode == "hybrid":
+        from .database import delete_persisted_upload
+
+        delete_persisted_upload(upload_id)
+    append_audit_event("evidence.delete", upload_id, {"filename": upload.filename}, actor=principal.email)
 
 
 @app.post("/api/pipeline/start", tags=["pipeline"])
-def start_pipeline(request: PipelineRequest, background_tasks: BackgroundTasks):
+def start_pipeline(request: PipelineRequest, background_tasks: BackgroundTasks, principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     if request.upload_id not in uploads:
         raise HTTPException(status_code=404, detail="Upload not found")
-    state = make_pipeline(request.upload_id, request.activate)
+    state = make_pipeline(request.upload_id, request.activate, principal.email)
     pipelines[state.id] = state
     uploads[request.upload_id].status = "processing"
     background_tasks.add_task(run_pipeline, state.id, settings.upload_dir)
@@ -191,10 +277,10 @@ def active_investigation_detail():
 
 
 @app.post("/api/investigations/{investigation_id}/activate", tags=["investigations"])
-def set_active_investigation(investigation_id: str):
+def set_active_investigation(investigation_id: str, principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     try:
         result = activate_investigation(investigation_id)
-        append_audit_event("investigation.activate", investigation_id, {"name": result["name"]}, actor=settings.analyst_email)
+        append_audit_event("investigation.activate", investigation_id, {"name": result["name"]}, actor=principal.email)
         return result
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Investigation not found") from exc
@@ -220,16 +306,16 @@ def identity_resolution_candidates():
 
 
 @app.post("/api/entity-resolution/{candidate_id}/decision", tags=["entity resolution"])
-def decide_identity_resolution(candidate_id: str, request: ResolutionDecisionRequest):
+def decide_identity_resolution(candidate_id: str, request: ResolutionDecisionRequest, principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     try:
-        return record_resolution_decision(candidate_id, request.decision, request.rationale)
+        return record_resolution_decision(candidate_id, request.decision, request.rationale, principal.email)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Identity candidate not found") from exc
 
 
 @app.post("/api/demo/suraksha/reset", tags=["flagship demonstration"])
-def reset_flagship_demo():
-    return reset_suraksha_demo()
+def reset_flagship_demo(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
+    return reset_suraksha_demo(principal.email)
 
 
 @app.get("/api/protected-persons", tags=["protected-person privacy"])
@@ -243,15 +329,15 @@ def protected_people():
 
 
 @app.post("/api/protected-persons/{profile_id}/reveal", tags=["protected-person privacy"])
-def reveal_protected_person(profile_id: str, request: ProtectedRevealRequest):
+def reveal_protected_person(profile_id: str, request: ProtectedRevealRequest, principal: Annotated[Principal, Depends(require_roles("supervisor"))]):
     try:
-        return reveal_profile(profile_id, request.reason, request.authorization_reference, settings.analyst_email)
+        return reveal_profile(profile_id, request.reason, request.authorization_reference, principal.email)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Protected person not found") from exc
 
 
 @app.get("/api/audit", tags=["tamper-evident audit"])
-def get_audit_entries(limit: int = Query(default=100, ge=1, le=1000)):
+def get_audit_entries(principal: Annotated[Principal, Depends(require_roles("analyst"))], limit: int = Query(default=100, ge=1, le=1000)):
     return {"items": audit_entries(limit), "verification": verify_audit_chain()}
 
 
@@ -272,10 +358,18 @@ def scale_benchmark():
     return json.loads(BENCHMARK_PATH.read_text(encoding="utf-8"))
 
 
+@app.get("/api/benchmarks/model", tags=["evaluation"])
+def model_evaluation():
+    if not MODEL_EVALUATION_PATH.exists():
+        raise HTTPException(status_code=404, detail="Run backend/scripts/evaluate_model.py to create the model evaluation artifact")
+    return json.loads(MODEL_EVALUATION_PATH.read_text(encoding="utf-8"))
+
+
 @app.delete("/api/investigations/{investigation_id}", status_code=204, tags=["investigations"])
-def remove_investigation(investigation_id: str):
+def remove_investigation(investigation_id: str, principal: Annotated[Principal, Depends(require_roles("supervisor"))]):
     try:
         delete_investigation(investigation_id)
+        append_audit_event("investigation.delete", investigation_id, actor=principal.email)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Investigation not found") from exc
     except ValueError as exc:
@@ -298,6 +392,15 @@ def pipeline_logs(pipeline_id: str):
 
 @app.websocket("/api/pipeline/stream/{pipeline_id}")
 async def pipeline_stream(websocket: WebSocket, pipeline_id: str):
+    if settings.auth_mode == "required" and not settings.public_demo:
+        authorization = websocket.headers.get("authorization")
+        if not authorization and websocket.query_params.get("access_token"):
+            authorization = f"Bearer {websocket.query_params['access_token']}"
+        try:
+            resolve_principal(authorization)
+        except HTTPException:
+            await websocket.close(code=4401, reason="Authentication required")
+            return
     await websocket.accept()
     if pipeline_id not in pipelines:
         await websocket.send_json({"error": "Pipeline not found"})
@@ -572,26 +675,26 @@ def list_alerts():
 
 
 @app.post("/api/alerts/{alert_id}/acknowledge", tags=["alerts"])
-def acknowledge_alert(alert_id: str):
+def acknowledge_alert(alert_id: str, principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     alert = next((item for item in generated_alerts(graph(), acknowledged_alerts) if item.id == alert_id), None)
     if alert is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     acknowledged_alerts.add(alert_id)
     alert.acknowledged = True
-    append_audit_event("alert.acknowledge", alert_id, {"title": alert.title}, actor=settings.analyst_email)
+    append_audit_event("alert.acknowledge", alert_id, {"title": alert.title}, actor=principal.email)
     return alert
 
 
 @app.get("/api/export/graph/json", tags=["export"])
-def export_json():
-    append_audit_event("evidence.export", "graph-json", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
+def export_json(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
+    append_audit_event("evidence.export", "graph-json", {"investigation": active_investigation()["id"]}, actor=principal.email)
     return Response(graph().model_dump_json(indent=2), media_type="application/json", headers={"Content-Disposition": "attachment; filename=sentinel_graph.json"})
 
 
 @app.get("/api/export/graph/graphml", tags=["export"])
-def export_graphml():
+def export_graphml(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     payload = graph()
-    append_audit_event("evidence.export", "graphml", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
+    append_audit_event("evidence.export", "graphml", {"investigation": active_investigation()["id"]}, actor=principal.email)
     parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">', '<graph id="sentinel" edgedefault="undirected">']
     for node in payload.nodes:
         parts.append(f'<node id="{node.id}"><data key="label">{_xml(node.name)}</data><data key="type">{node.type}</data><data key="risk">{node.risk}</data></node>')
@@ -605,38 +708,45 @@ def _xml(value: str) -> str:
     return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
+def _csv_safe(value: Any) -> Any:
+    """Neutralize spreadsheet formulas in untrusted exported text fields."""
+    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
+
+
 @app.get("/api/export/data/csv", tags=["export"])
-def export_csv(dataset: str = "risk"):
-    append_audit_event("evidence.export", f"csv-{dataset}", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
+def export_csv(principal: Annotated[Principal, Depends(require_roles("analyst"))], dataset: str = "risk"):
+    append_audit_event("evidence.export", f"csv-{dataset}", {"investigation": active_investigation()["id"]}, actor=principal.email)
     output = io.StringIO()
     if dataset == "timeline":
         writer = csv.DictWriter(output, fieldnames=["id", "date", "time", "title", "description", "type", "severity", "risk", "case_id", "occurred_at", "entities"], extrasaction="ignore")
         writer.writeheader()
         for event in active_timeline(graph()):
-            writer.writerow({**event, "entities": ";".join(event["entities"])})
+            writer.writerow({key: _csv_safe(value) for key, value in {**event, "entities": ";".join(event["entities"])}.items()})
     elif dataset == "alerts":
         writer = csv.writer(output)
         writer.writerow(["id", "severity", "title", "detail", "entity_id", "confidence", "acknowledged", "derivation"])
         for alert in generated_alerts(graph(), acknowledged_alerts):
-            writer.writerow([alert.id, alert.severity, alert.title, alert.detail, alert.entityId, alert.confidence, alert.acknowledged, "active-graph deterministic rule"])
+            writer.writerow([_csv_safe(value) for value in [alert.id, alert.severity, alert.title, alert.detail, alert.entityId, alert.confidence, alert.acknowledged, "active-graph deterministic rule"]])
     else:
         writer = csv.writer(output)
         writer.writerow(["id", "name", "type", "risk", "confidence", "community", "location"])
         for node in sorted(graph().nodes, key=lambda item: item.risk, reverse=True):
-            writer.writerow([node.id, node.name, node.type, node.risk, node.confidence, node.community, node.location or ""])
+            writer.writerow([_csv_safe(value) for value in [node.id, node.name, node.type, node.risk, node.confidence, node.community, node.location or ""]])
     return Response(output.getvalue(), media_type="text/csv", headers={"Content-Disposition": f"attachment; filename=sentinel_{dataset}.csv"})
 
 
 @app.get("/api/export/geojson", tags=["export"])
-def export_geojson():
-    append_audit_event("evidence.export", "geojson", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
+def export_geojson(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
+    append_audit_event("evidence.export", "geojson", {"investigation": active_investigation()["id"]}, actor=principal.email)
     features = [{"type": "Feature", "id": item["id"], "properties": {key: value for key, value in item.items() if key not in {"lat", "lng"}}, "geometry": {"type": "Point", "coordinates": [item["lng"], item["lat"]]}} for item in active_locations(graph())]
     return Response(json.dumps({"type": "FeatureCollection", "features": features}, indent=2), media_type="application/geo+json", headers={"Content-Disposition": "attachment; filename=sentinel_locations.geojson"})
 
 
 @app.get("/api/export/report/pdf", tags=["export"])
-def export_report_pdf():
-    append_audit_event("evidence.export", "report-pdf", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
+def export_report_pdf(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
+    append_audit_event("evidence.export", "report-pdf", {"investigation": active_investigation()["id"]}, actor=principal.email)
     from reportlab.lib.colors import HexColor
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen.canvas import Canvas
@@ -708,9 +818,10 @@ def get_config():
 
 
 @app.post("/api/config", tags=["settings"])
-def update_config(update: ConfigUpdate):
+def update_config(update: ConfigUpdate, principal: Annotated[Principal, Depends(require_roles("supervisor"))]):
     for key, value in update.model_dump(exclude_none=True).items():
         system_config[key] = value
+    append_audit_event("configuration.update", "system", {"keys": sorted(update.model_dump(exclude_none=True))}, actor=principal.email)
     return system_config
 
 

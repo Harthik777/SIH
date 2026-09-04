@@ -2,7 +2,7 @@
 
 Sentinel is a full-stack investigation workspace that turns FIR narratives and structured crime records into an ontology-aligned knowledge graph. It combines a fast investigator-facing interface with a FastAPI service for ingestion, graph exploration, analytics, anomaly review, explanations, and export.
 
-The September 2026 build is an offline-first SIH demonstration that also deploys as one full-stack website. It requires no paid AI API, fingerprints every evidence artifact, separates observations from hypotheses, protects survivor identities, and keeps a human analyst in control of every consequential interpretation.
+The September 2026 build is an offline-first investigative pilot—not a static prototype—that also deploys as one full-stack website. It requires no paid AI API, fingerprints every evidence artifact, separates observations from hypotheses, protects survivor identities, and keeps a human analyst in control of every consequential interpretation.
 
 The repository opens with **Operation Suraksha**, a clearly labelled fictional Bengaluru-area exercise built to prove multi-source fusion safely:
 
@@ -50,7 +50,7 @@ The frontend has a deterministic fallback dataset, so it still renders if the AP
 
 ## Deploy the complete website
 
-The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures a free, synthetic-only internal-round deployment; the public mode keeps every analysis module available but blocks arbitrary uploads. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures the live, synthetic-only internal-round deployment at [sentinel-sih-26189-harthik.onrender.com](https://sentinel-sih-26189-harthik.onrender.com); public mode keeps every analysis module available but blocks arbitrary uploads. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Run the complete stack
 
@@ -70,7 +70,7 @@ Services:
 | Neo4j Browser | `localhost:7474` | Graph database console |
 | Neo4j Bolt | `localhost:7687` | Graph driver connection |
 
-Copy `.env.example` to `.env` before using non-demo credentials.
+Copy `.env.example` to `.env`, replace both passwords and the signing secret, then start the stack. This private profile requires login, applies analyst/supervisor authorization, stores operational state in a named Docker volume, catalogues investigations in PostgreSQL, and mirrors each case into an isolated Neo4j subgraph.
 
 ## Product capabilities
 
@@ -96,8 +96,11 @@ Copy `.env.example` to `.env` before using non-demo credentials.
 - Conservative entity resolution that surfaces supporting and conflicting signals, prevents name-only auto-merges, and reserves identity decisions for humans
 - JSON, GraphML, CSV, GeoJSON, and generated PDF exports
 - Dark/light themes and responsive navigation
-- JWT-compatible local authentication that rejects arbitrary credentials, plus role-ready persistence models
-- PostgreSQL metadata schema, batch-safe Neo4j adapter, Redis/Celery worker, and Docker deployment
+- Signed JWT sessions, analyst/supervisor route enforcement, audited login, password-hash support, and a private login screen
+- Request rate limiting, request IDs, liveness/readiness probes, Prometheus-compatible metrics, CSP/HSTS headers, and CSV-formula neutralization
+- Bounded text ingestion that rejects executable/archive masquerading, binary NUL content, XML entity declarations, oversized records, columns, and fields
+- PostgreSQL investigation catalogue, case-scoped Neo4j graph mirroring, atomic fallback snapshots, durable Docker state volume, and verified backup script
+- Redis/Celery worker seam and Docker deployment
 
 ## Data and ontology integration
 
@@ -121,7 +124,7 @@ The original supplied scripts are preserved in `backend/reference/`. The runtime
 
 The supplied [`GraphSAGE_Model.ipynb`](backend/models/GraphSAGE_Model.ipynb) is integrated as a two-layer suspect classifier with the exact notebook schema: six one-hot ontology node types plus normalized node degree, 32 hidden channels per layer, and `normal` / `suspicious` outputs. Its source graph and the separately supplied link-prediction JSON are preserved alongside it in `backend/models/`.
 
-The notebook saves `graphsage_model.pt`, but that checkpoint was not included in the supplied files. A fresh checkpoint has therefore been reproduced from the notebook architecture and matching source graph with a fixed split seed (`42`) and model seed (`1`). The selected epoch achieved validation F1 `1.0` on the notebook's 80/20 suspect split; provenance is recorded in `backend/models/graphsage_training.json`. This is a reproduction, not the notebook author's original serialized state.
+The originally supplied bundle did not contain the checkpoint referenced by the notebook. A fresh `graphsage_model.pt` was therefore reproduced from the notebook architecture and matching source graph with a fixed split seed (`42`) and model seed (`1`). The selected epoch achieved validation F1 `1.0` on the notebook's 80/20 suspect split; provenance is recorded in `backend/models/graphsage_training.json`. This is a reproduction, not the notebook author's original serialized state.
 
 `/api/analytics/graphsage` performs real CPU inference whenever the checkpoint and PyTorch Geometric runtime are available. A compact NumPy weight artifact provides an equivalent two-layer mean-aggregator forward pass in the web container without shipping the heavyweight training stack. Out-of-training-schema graphs still return a clearly labelled structural preview—never fabricated model probabilities. PyTorch checkpoints are loaded with `weights_only=True`.
 
@@ -130,7 +133,7 @@ npm run install:ml
 python backend/scripts/train_graphsage.py --epochs 200 --seed 1
 ```
 
-The notebook-reported validation score is retained as training metadata, not presented as an independent test result. Model outputs are decision support for analyst review and are not evidence of guilt.
+The notebook-reported validation score is retained as training metadata, not presented as an independent test result. `python backend/scripts/evaluate_model.py` produces fixed-baseline comparisons, a confusion matrix and a Brier score in `backend/benchmarks/model_evaluation.json`. The accompanying [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) explicitly records that the labels are structural proxies rather than adjudicated outcomes. Model outputs are decision support for analyst review and are not evidence of guilt.
 
 ## Evidence integrity and responsible analysis
 
@@ -181,11 +184,14 @@ backend/
 ├── app/suraksha.py            Flagship replay, ground-truth evaluation, identity controls
 ├── app/protected_persons.py    Masked vault and reasoned ephemeral disclosure
 ├── app/audit_log.py            Append-only SHA-256 action chain
+├── app/security.py             JWT authentication, PBKDF2 and role enforcement
+├── app/operations.py           Rate limiting, request telemetry and metrics
 ├── app/readiness.py            Offline release gate and benchmark discovery
-├── app/database.py          PostgreSQL models + Neo4j repository
+├── app/database.py             Active PostgreSQL + case-scoped Neo4j adapters
 ├── app/celery_app.py        Redis/Celery task entry point
 ├── data/                    Synthetic flagship fixtures plus supplied CSV/FIR corpus
-├── models/                  GraphSAGE notebook, graph, outputs, and checkpoint slot
+├── models/                     GraphSAGE notebook, graph, outputs, and checkpoint
+├── benchmarks/                 Measured scale and model-evaluation artifacts
 ├── ontology/                Source and populated TTL ontologies
 └── reference/               Original supplied Python scripts
 ```
@@ -199,7 +205,7 @@ The API includes all requested route groups:
 - `/api/graph/nodes`, `/api/graph/edges`, `/api/graph/subgraph`, `/api/graph/search`, `/api/graph/metrics`
 - `/api/investigations`, `/api/investigations/active`, `/api/investigations/{id}/activate`
 - `/api/demo/suraksha/replay`, `/api/demo/suraksha/evaluation`
-- `/api/demo/suraksha/reset`, `/api/system/readiness`, `/api/benchmarks/scale`
+- `/api/demo/suraksha/reset`, `/api/system/readiness`, `/api/benchmarks/scale`, `/api/benchmarks/model`
 - `/api/protected-persons`, `/api/protected-persons/{id}/reveal`, `/api/audit`, `/api/audit/verify`
 - `/api/entity-resolution/candidates`, `/api/entity-resolution/{id}/decision`
 - `/api/analytics/centrality`, `/api/analytics/key-individuals`, `/api/analytics/community`, `/api/analytics/embeddings`, `/api/analytics/distribution`, `/api/analytics/trends`, `/api/analytics/graphsage`
@@ -209,6 +215,7 @@ The API includes all requested route groups:
 - `/api/export/graph/json`, `/api/export/graph/graphml`, `/api/export/report/pdf`, `/api/export/data/csv`, `/api/export/geojson`
 - `/api/data/quality`, `/api/provenance/manifest`
 - `/api/config`, `/api/models`, `/api/models/graphsage/status`, `/api/ontology/summary`, `/api/auth/login`, `/api/auth/me`
+- `/api/health/live`, `/api/health/ready`, `/api/system/metrics`, `/metrics`
 
 ## September 2026 frontend baseline
 
@@ -224,4 +231,4 @@ This runs the frontend component tests and backend API tests. A production front
 
 ## Production notes
 
-The default API graph store is durable local JSON with atomic replacement, designed for free single-machine evaluation. `Neo4jGraphRepository` provides indexed, batched persistence for deployment. PostgreSQL ORM models cover users, uploads, processing logs, investigations, alerts, and saved filters. Before multi-user deployment, wire those adapters into the request dependency layer, rotate the JWT secret and local demo password, use password hashing or identity federation, and place object storage and malware scanning in front of raw uploads.
+The default API graph store is durable local JSON with atomic replacement, designed for free single-machine evaluation. The private Docker profile activates hybrid persistence: PostgreSQL catalogues case metadata while Neo4j stores case-scoped nodes and relationships, with local snapshots retained for recovery. Authentication is mandatory in that profile and role checks protect sensitive mutations and protected-person reveal. See [`docs/SECURITY_OPERATIONS.md`](docs/SECURITY_OPERATIONS.md) for credentials, backup, monitoring and the remaining agency-accreditation boundary.

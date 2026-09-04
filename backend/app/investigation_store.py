@@ -15,12 +15,13 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from .config import get_settings
 from .crime_pipeline import DATASET_PATH, load_crime_graph, read_records
 from .models import GraphPayload
 from .suraksha import SURAKSHA_ID, SURAKSHA_PATH, load_suraksha_graph, load_suraksha_records, source_sha256
 
 
-STORE_DIR = Path(__file__).resolve().parent.parent / "data" / "investigations"
+STORE_DIR = get_settings().investigation_dir
 REGISTRY_PATH = STORE_DIR / "registry.json"
 CITY_SHIELD_ID = "city-shield"
 DEFAULT_INVESTIGATION_ID = SURAKSHA_ID
@@ -104,7 +105,9 @@ def list_investigations() -> dict[str, Any]:
         active_id = registry.get("active_id", DEFAULT_INVESTIGATION_ID)
         if active_id not in BUILT_IN_INVESTIGATION_IDS and not (STORE_DIR / f"{active_id}.json").exists():
             active_id = DEFAULT_INVESTIGATION_ID
-        return {"active_id": active_id, "items": items, "persistence": "local-json-atomic"}
+        mode = get_settings().persistence_mode
+        persistence = "postgresql+neo4j+local-snapshot" if mode == "hybrid" else "local-json-atomic"
+        return {"active_id": active_id, "items": items, "persistence": persistence}
 
 
 def active_investigation() -> dict[str, Any]:
@@ -149,6 +152,7 @@ def save_investigation(
     source_sha256: str,
     upload_id: str,
     activate: bool,
+    owner: str = "local-analyst",
 ) -> dict[str, Any]:
     with _LOCK:
         investigation_id = f"inv-{uuid4().hex[:12]}"
@@ -166,6 +170,8 @@ def save_investigation(
             "created_at": now,
             "status": "ready",
             "built_in": False,
+            "owner": owner,
+            "access_scope": "case-owner",
         }
         _write_json(
             STORE_DIR / f"{investigation_id}.json",
@@ -178,6 +184,10 @@ def save_investigation(
         if activate:
             registry["active_id"] = investigation_id
         _write_json(REGISTRY_PATH, registry)
+        if get_settings().persistence_mode == "hybrid":
+            from .database import persist_investigation
+
+            persist_investigation({**entry, "active": activate}, graph)
         return {**entry, "active": activate}
 
 
@@ -190,6 +200,10 @@ def activate_investigation(investigation_id: str) -> dict[str, Any]:
         registry = _registry()
         registry["active_id"] = investigation_id
         _write_json(REGISTRY_PATH, registry)
+        if get_settings().persistence_mode == "hybrid":
+            from .database import set_persisted_active
+
+            set_persisted_active(investigation_id)
         return {**entry, "active": True}
 
 
@@ -207,3 +221,7 @@ def delete_investigation(investigation_id: str) -> None:
         snapshot = (STORE_DIR / f"{investigation_id}.json").resolve()
         if STORE_DIR.resolve() in snapshot.parents:
             snapshot.unlink(missing_ok=True)
+        if get_settings().persistence_mode == "hybrid":
+            from .database import delete_persisted_investigation
+
+            delete_persisted_investigation(investigation_id)

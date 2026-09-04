@@ -1,10 +1,12 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import audit_log, suraksha
+from app import audit_log, main as main_module, suraksha
 from app.main import app
 from app.crime_pipeline import build_graph, load_crime_graph, parse_fir
 from app.graphsage import INPUT_FEATURES, analyze_graph, build_features
+from app.operations import SlidingWindowRateLimiter
+from app.security import hash_password
 
 
 client = TestClient(app)
@@ -403,3 +405,68 @@ def test_readiness_and_scale_evidence_are_machine_readable():
     assert [run["records"] for run in benchmark["runs"]] == [10_000, 100_000]
     assert all(run["graph_build_seconds"] > 0 and run["peak_python_memory_mib"] > 0 for run in benchmark["runs"])
     assert benchmark["entity_resolution_safety"]["false_merge_rate"] == 0
+
+
+def test_required_authentication_and_role_separation(monkeypatch, tmp_path):
+    monkeypatch.setattr(main_module.settings, "auth_mode", "required")
+    monkeypatch.setattr(audit_log, "AUDIT_PATH", tmp_path / "audit_chain.jsonl")
+    assert client.get("/api/visualization/graph").status_code == 401
+
+    analyst_login = client.post(
+        "/api/auth/login",
+        json={"email": "analyst@sentinel.local", "password": "sentinel-demo"},
+    )
+    analyst_header = {"Authorization": f"Bearer {analyst_login.json()['access_token']}"}
+    assert client.get("/api/auth/me", headers=analyst_header).json()["role"] == "analyst"
+    protected_id = client.get("/api/protected-persons", headers=analyst_header).json()["items"][0]["id"]
+    assert client.post(
+        f"/api/protected-persons/{protected_id}/reveal",
+        headers=analyst_header,
+        json={"reason": "Authorized synthetic case verification", "authorization_reference": "TEST-ROLE-1"},
+    ).status_code == 403
+
+    supervisor_login = client.post(
+        "/api/auth/login",
+        json={"email": "supervisor@sentinel.local", "password": "sentinel-supervisor"},
+    )
+    supervisor_header = {"Authorization": f"Bearer {supervisor_login.json()['access_token']}"}
+    assert client.post(
+        f"/api/protected-persons/{protected_id}/reveal",
+        headers=supervisor_header,
+        json={"reason": "Authorized synthetic case verification", "authorization_reference": "TEST-ROLE-2"},
+    ).status_code == 200
+
+
+def test_operational_endpoints_and_rate_limiter_are_machine_readable():
+    assert client.get("/api/health/live").json() == {"status": "alive"}
+    assert client.get("/api/health/ready").status_code == 200
+    metrics = client.get("/api/system/metrics").json()
+    assert metrics["requests_total"] > 0
+    assert metrics["average_latency_ms"] >= 0
+    prometheus = client.get("/metrics").text
+    assert "sentinel_http_requests_total" in prometheus
+    limiter = SlidingWindowRateLimiter()
+    assert limiter.allow("test-client", 2)
+    assert limiter.allow("test-client", 2)
+    assert not limiter.allow("test-client", 2)
+
+
+def test_password_hashing_and_binary_disguised_as_csv_are_guarded():
+    assert hash_password("local-secret").startswith("pbkdf2_sha256$")
+    uploaded = client.post(
+        "/api/upload",
+        files={"file": ("disguised.csv", b"MZ\x90\x00not-a-csv", "text/csv")},
+    ).json()
+    started = client.post("/api/pipeline/start", json={"upload_id": uploaded["id"], "activate": False}).json()
+    state = client.get(f"/api/pipeline/status/{started['pipeline_id']}").json()
+    assert state["status"] == "failed"
+    assert "Executable or archive content" in state["error"]
+    assert client.delete(f"/api/upload/{uploaded['id']}").status_code == 204
+
+
+def test_model_evaluation_exposes_baselines_and_limitations():
+    payload = client.get("/api/benchmarks/model").json()
+    assert payload["dataset"]["suspects"] == 434
+    assert payload["graphsage"]["metrics_on_full_supplied_graph"]["f1"] >= 0
+    assert set(payload["fixed_baselines"]) == {"risk_score_at_least_70", "graph_degree_at_least_4"}
+    assert any("not independently adjudicated" in item for item in payload["limitations"])

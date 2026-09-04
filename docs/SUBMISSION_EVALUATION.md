@@ -16,8 +16,10 @@
 | Protected-person risk/ML exposure | 0 | Two nodes fixed at risk 0 and removed before model feature generation |
 | Tamper-evident audit | Valid | `/api/audit/verify` recalculates sequence, previous hash, and content hash |
 | Larger supplied corpus | 500 records | 1,530 nodes and 2,127 relationships |
-| Backend verification | 25 tests passed | `pytest -q` |
-| Frontend verification | 3 tests passed | `npm test` |
+| Backend verification | 29 tests passed | `pytest -q` |
+| Frontend verification | 4 tests passed | `npm test` |
+| Private access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
+| Model evaluation | Reproducible | confusion matrix, Brier score, two fixed baselines and explicit proxy-label limitation |
 
 The deployable NumPy GraphSAGE forward pass was compared across all 434 suspect nodes with the PyTorch Geometric implementation: maximum probability delta `0.0`, with identical classifications. The lightweight artifact enables real checkpoint inference on the free web image while the training notebook and full ML runtime remain available locally.
 
@@ -55,8 +57,8 @@ This comparison describes architectural categories, not audited claims about nam
 - The 100k benchmark proves bounded single-machine behavior, not concurrent casework or national-scale throughput.
 - The GraphSAGE checkpoint reproduces the supplied notebook's label rule and split; it is not independently validated on operational Indian data.
 - The synthetic protected-person vault proves the interaction and audit policy, not compliance with an agency's final authorization model.
-- Production requires agency SSO/RBAC, encryption key management, malware scanning, durable object storage, retention/deletion policy, approved redacted datasets, fairness testing, penetration testing, and formal accreditation.
+- The private pilot now provides local JWT authentication, analyst/supervisor authorization, persistent Docker state, PostgreSQL catalogue, case-scoped Neo4j mirroring, rate limits and operational probes. Agency production still requires identity-provider federation, encryption key management, approved malware scanning, durable object storage, retention/deletion policy, approved redacted datasets, fairness testing, penetration testing, and formal accreditation.
 
 ## Submission decision
 
-For a college internal SIH round, the build is submission-ready once the public URL is created and rehearsed. The strongest demonstration is not feature count: it is the complete chain from six fragmented sources to a challengeable graph finding, followed immediately by the privacy guardrail, false-merge prevention, and valid audit-chain proof.
+For a college internal SIH round, the build is submission-ready at its live Render URL. It is best described as a deployment-ready investigative pilot rather than a mock-up. The strongest demonstration is not feature count: it is the complete chain from six fragmented sources to a challengeable graph finding, followed immediately by the privacy guardrail, false-merge prevention, and valid audit-chain proof.

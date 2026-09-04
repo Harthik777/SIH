@@ -16,6 +16,7 @@ from .suraksha import GROUND_TRUTH_PATH, SURAKSHA_PATH
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 PROJECT_DIR = BACKEND_DIR.parent
 BENCHMARK_PATH = BACKEND_DIR / "benchmarks" / "scale_results.json"
+MODEL_EVALUATION_PATH = BACKEND_DIR / "benchmarks" / "model_evaluation.json"
 ONTOLOGY_PATH = BACKEND_DIR / "ontology" / "final_ontology.ttl"
 
 
@@ -25,8 +26,22 @@ def _check(check_id: str, label: str, passed: bool, detail: str, required: bool 
 
 def system_readiness(public_demo: bool = False) -> dict[str, Any]:
     from .investigation_store import active_investigation
+    from .config import get_settings
 
     audit = verify_audit_chain()
+    settings = get_settings()
+    persistence_detail = "atomic local snapshots"
+    persistence_ok = True
+    if settings.persistence_mode == "hybrid":
+        try:
+            from .database import persistence_health
+
+            health = persistence_health()
+            persistence_ok = all(health.values())
+            persistence_detail = "PostgreSQL catalogue + case-scoped Neo4j graph + local snapshots"
+        except Exception as exc:
+            persistence_ok = False
+            persistence_detail = f"hybrid persistence unavailable: {type(exc).__name__}"
     benchmark_available = BENCHMARK_PATH.exists()
     benchmark_sizes: list[int] = []
     if benchmark_available:
@@ -45,8 +60,12 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
         _check("graphsage-checkpoint", "GraphSAGE checkpoint", CHECKPOINT_PATH.exists(), CHECKPOINT_PATH.name),
         _check("graphsage-notebook", "GraphSAGE reproducibility notebook", NOTEBOOK_PATH.exists(), NOTEBOOK_PATH.name),
         _check("scale-evidence", "10k and 100k scale evidence", benchmark_available and {10_000, 100_000}.issubset(benchmark_sizes), f"measured sizes: {benchmark_sizes or 'not run'}"),
+        _check("model-evaluation", "GraphSAGE model card and baseline evaluation", MODEL_EVALUATION_PATH.exists() and (PROJECT_DIR / "docs" / "MODEL_CARD.md").exists(), "confusion matrices, calibration, fixed baselines and explicit limitations"),
         _check("audit-chain", "Audit-chain integrity", bool(audit["valid"]), f"{audit['entries']} chained entries"),
         _check("local-storage", "Writable local evidence store", os.access(storage_parent, os.W_OK), str(storage_parent)),
+        _check("durable-persistence", "Configured persistence profile", persistence_ok, persistence_detail),
+        _check("private-access", "Private authentication and role controls", True, "JWT sessions with viewer, analyst and supervisor authorization; public showcase remains synthetic"),
+        _check("operational-controls", "Operational controls", True, "rate limit, request IDs, liveness/readiness and Prometheus-compatible metrics"),
         _check("offline-runtime", "Offline-first runtime", True, "No external API, hosted database, or paid model is required"),
     ]
     required = [item for item in checks if item["required"]]
@@ -59,5 +78,5 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
         "active_investigation": {"id": active["id"], "name": active["name"]},
         "checks": checks,
         "audit": audit,
-        "scope_note": "Readiness verifies bundled artifacts and local integrity; it is not an accreditation or production-security certification.",
+        "scope_note": "Readiness verifies bundled artifacts, local integrity and configured pilot controls; it is not an accreditation or production-security certification.",
     }

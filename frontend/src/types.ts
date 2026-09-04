@@ -1,6 +1,12 @@
 export type EntityType = 'person' | 'protected_person' | 'organization' | 'location' | 'account' | 'phone' | 'event' | 'vehicle' | 'crime'
 export type Severity = 'critical' | 'high' | 'medium' | 'low'
 
+export interface AuthUser {
+  email: string
+  role: 'viewer' | 'analyst' | 'supervisor' | 'demo'
+  mode: string
+}
+
 export interface GraphNode {
   id: string
   name: string
@@ -364,6 +370,19 @@ export interface ScaleBenchmark {
     connection_path: { median_ms: number; p95_ms: number; hops: number | null }
   }>
   entity_resolution_safety: { false_merge_rate: number; automatic_merge_precision: number | null; precision_note: string }
+}
+
+export interface ModelEvaluation {
+  classification: string
+  dataset: { suspects: number; positive_suspects: number; label_definition: string }
+  graphsage: {
+    runtime_mode: string
+    threshold: number
+    brier_score: number | null
+    metrics_on_full_supplied_graph: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
+  }
+  fixed_baselines: Record<string, { precision: number; recall: number; f1: number; accuracy: number }>
+  limitations: string[]
 }
 
 export interface GraphSageResult {

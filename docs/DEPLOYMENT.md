@@ -48,6 +48,12 @@ Invoke-RestMethod http://localhost:8000/api/system/readiness
 
 ## Private full-ingestion edition
 
-Run the same image with `SENTINEL_PUBLIC_DEMO=false` only on a trusted network. Set a unique `SENTINEL_SECRET_KEY`, password, exact allowed origin, and durable volume for `/app/backend/data/investigations` and `/app/backend/data/uploads`. The full Docker Compose stack adds PostgreSQL, Neo4j, Redis, and Celery adapters for the next deployment tier.
+Run `docker compose up --build` only on a trusted network after copying `.env.example` to `.env` and replacing its credentials. The private profile sets `SENTINEL_AUTH_MODE=required`; the React application displays a login screen and every non-health API request requires a signed session. Analyst actions and supervisor-only actions are enforced server-side.
 
-The current competition API has a demo identity surface, not agency-grade endpoint authorization. Before accepting real evidence, enforce authentication on every request, add role/attribute checks, malware scanning, encrypted durable storage, retention controls, rate limits, and security review.
+The `sentinel_state` Docker volume persists uploads, investigation snapshots, audit entries, and identity-review decisions. New investigations are catalogued in PostgreSQL and mirrored into Neo4j using investigation-scoped keys. Create a verified state archive with:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/backup_state.ps1
+```
+
+Operational endpoints are `/api/health/live`, `/api/health/ready`, `/api/system/metrics`, and Prometheus-compatible `/metrics`. This pilot includes text-content guards and rate limits, but real agency evidence still requires approved malware scanning, encryption/key management, retention controls, identity federation, penetration testing, and formal accreditation.

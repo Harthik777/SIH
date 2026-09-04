@@ -26,7 +26,18 @@
 powershell -ExecutionPolicy Bypass -File scripts/verify_release.ps1
 ```
 
-Expected result: backend tests, frontend tests, production build, dependency checks, flagship ground truth, audit verification, and scale-result presence all pass.
+Expected result: backend and frontend tests, production build, dependency checks, flagship ground truth, role enforcement, audit verification, model evaluation, and scale-result presence all pass.
+
+## Private-pilot rehearsal
+
+1. Copy `.env.example` to `.env` and replace the signing secret plus analyst/supervisor passwords.
+2. Run `docker compose up --build`.
+3. Confirm an unauthenticated `/api/visualization/graph` request returns HTTP 401.
+4. Sign in through the website as an analyst; confirm normal investigation work succeeds.
+5. Confirm protected-person reveal requires the supervisor account.
+6. Create a test case, restart the containers, and confirm it remains in the investigation selector.
+7. Check `/api/health/ready` and `/metrics`.
+8. Run `scripts/backup_state.ps1` and retain the resulting hash-manifest archive outside the machine.
 
 ## Judge-day reset
 
