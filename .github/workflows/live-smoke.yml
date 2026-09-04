@@ -1,0 +1,43 @@
+name: Sentinel live deployment smoke test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_run:
+    workflows: ["Sentinel release checks"]
+    branches: [master]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sentinel-live-smoke
+  cancel-in-progress: true
+
+jobs:
+  live-smoke:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      SENTINEL_SMOKE_BASE_URL: https://sentinel-sih-26189-harthik.onrender.com
+      SENTINEL_SMOKE_EMAIL: ${{ secrets.SENTINEL_SMOKE_EMAIL }}
+      SENTINEL_SMOKE_PASSWORD: ${{ secrets.SENTINEL_SMOKE_PASSWORD }}
+      SENTINEL_SMOKE_EXPECTED_COMMIT: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Exercise the deployed investigation workflow
+        run: python scripts/live_smoke_test.py --wait-seconds 420 --output-dir artifacts/live-smoke
+      - name: Preserve the non-secret smoke evidence
+        if: success()
+        uses: actions/upload-artifact@v6
+        with:
+          name: live-smoke-${{ github.run_id }}
+          path: artifacts/live-smoke/live_smoke_receipt.json
+          if-no-files-found: error
+          retention-days: 14

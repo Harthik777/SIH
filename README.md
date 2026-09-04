@@ -236,6 +236,8 @@ npm test
 
 This runs the frontend component tests and backend API tests. A production frontend build can be checked separately with `npm run build`, or run the complete release gate with `powershell -ExecutionPolicy Bypass -File scripts/verify_release.ps1`.
 
+The `Sentinel live deployment smoke test` workflow runs after every successful `master` release check, once daily, and on demand. It waits for Render to expose the triggering Git SHA, verifies readiness, signs in through repository-held analyst secrets, checks the six-stage Operation Suraksha replay, verifies the audit chain, downloads and validates a real PDF report, and confirms that the export advanced the valid audit chain. Each successful run retains a non-secret receipt for 14 days; the report is hashed and discarded instead of being copied into GitHub artifacts. Configure `SENTINEL_SMOKE_EMAIL` and `SENTINEL_SMOKE_PASSWORD` as GitHub Actions repository secrets; never commit them.
+
 ## Production notes
 
 The live Render application uses managed PostgreSQL for its case catalogue and digest-verified durable object store. Uploaded sources, investigation snapshots, the active-case registry, audit chain, identity decisions, runtime controls, timestamp checkpoints and proofs are restored into the web service's local execution cache after a restart. The optional self-hosted profile additionally mirrors case-scoped graph topology into Neo4j. A separate GitHub Actions job verifies both PostgreSQL restoration and real PostgreSQL/Neo4j case isolation on every release. See [`docs/SECURITY_OPERATIONS.md`](docs/SECURITY_OPERATIONS.md) for credentials, backup, monitoring and the remaining agency-accreditation boundary.

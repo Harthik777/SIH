@@ -10,8 +10,9 @@ The repository includes `render.yaml` for a free Singapore-region Docker web ser
 2. Open Render → **New → Blueprint** and connect `Harthik777/SIH`.
 3. Confirm both the `sentinel-sih-26189-harthik` web service and `sentinel-sih-postgres` database, then apply the Blueprint.
 4. In the service's **Environment** page, reveal or rotate `SENTINEL_ANALYST_PASSWORD` and `SENTINEL_SUPERVISOR_PASSWORD`. Keep them outside the repository and share the analyst credential with judges through an approved private channel.
-5. Wait for `/api/health` to report `auth_mode: required`, `public_demo: false`, and `persistence_mode: postgres`, then sign in at the assigned `onrender.com` URL.
-6. Upload a synthetic sample, run the pipeline, activate its investigation, and verify that the graph and reports switch to the new case.
+5. Add the analyst email and password to GitHub Actions repository secrets named `SENTINEL_SMOKE_EMAIL` and `SENTINEL_SMOKE_PASSWORD`. The live-smoke workflow runs after successful release checks, daily, and manually; credentials and bearer tokens are never written to its logs or artifacts.
+6. Wait for `/api/health` to report `auth_mode: required`, `public_demo: false`, and `persistence_mode: postgres`, then sign in at the assigned `onrender.com` URL.
+7. Upload a synthetic sample, run the pipeline, activate its investigation, and verify that the graph and reports switch to the new case.
 
 Render's free web process sleeps after inactivity and its filesystem is ephemeral, but application state is now restored from managed PostgreSQL after restart or redeploy. The Blueprint caps individual uploads at 25 MB to protect the free CPU/RAM and 1 GB database envelopes. Render's free PostgreSQL instance expires 30 days after creation, so this profile is a time-bounded competition deployment rather than permanent evidence custody. Before expiry, create a replacement Render database or point `SENTINEL_DATABASE_URL` at a compatible no-cost PostgreSQL provider such as Neon. Download important reports and proof bundles regardless. Use only synthetic or legally shareable redacted data—never operational FIR/CDR or survivor information.
 

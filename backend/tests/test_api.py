@@ -29,8 +29,15 @@ def test_health_reports_loaded_crime_graph():
     assert payload["entities"] > 1000
     assert payload["relationships"] > 1000
     assert payload["persistence_mode"] == "local"
+    assert isinstance(payload["deployment_commit"], str) and payload["deployment_commit"]
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_health_exposes_the_render_release_identity(monkeypatch):
+    release = "8d139a5ad704f47aaee9e8269176212cd5109537"
+    monkeypatch.setenv("RENDER_GIT_COMMIT", release)
+    assert client.get("/api/health").json()["deployment_commit"] == release
 
 
 def test_render_blueprint_enables_managed_postgres_for_the_public_workspace():
@@ -39,6 +46,16 @@ def test_render_blueprint_enables_managed_postgres_for_the_public_workspace():
     assert "fromDatabase:" in manifest
     assert "name: sentinel-sih-postgres" in manifest
     assert "ipAllowList: []" in manifest
+
+
+def test_live_smoke_workflow_uses_repository_secrets_and_retains_no_report():
+    workflow = (Path(__file__).resolve().parents[2] / ".github" / "workflows" / "live-smoke.yml").read_text(encoding="utf-8")
+    script = (Path(__file__).resolve().parents[2] / "scripts" / "live_smoke_test.py").read_text(encoding="utf-8")
+    assert "secrets.SENTINEL_SMOKE_EMAIL" in workflow
+    assert "secrets.SENTINEL_SMOKE_PASSWORD" in workflow
+    assert "github.event.workflow_run.head_sha" in workflow
+    assert "artifacts/live-smoke/live_smoke_receipt.json" in workflow
+    assert '"retained": False' in script
 
 
 def test_local_login_rejects_arbitrary_credentials():

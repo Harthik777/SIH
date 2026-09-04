@@ -197,7 +197,21 @@ def node_or_404(node_id: str):
 @app.get("/api/health", tags=["system"])
 def health():
     payload = graph()
-    return {"status": "ok", "environment": settings.environment, "connectivity_mode": settings.connectivity_mode, "public_demo": settings.public_demo, "auth_mode": settings.auth_mode, "security_mode": "configured" if settings.production_secret_configured else "development-secret", "persistence_mode": settings.persistence_mode, "entities": len(payload.nodes), "relationships": len(payload.edges)}
+    return {
+        "status": "ok",
+        "environment": settings.environment,
+        "connectivity_mode": settings.connectivity_mode,
+        "public_demo": settings.public_demo,
+        "auth_mode": settings.auth_mode,
+        "security_mode": "configured" if settings.production_secret_configured else "development-secret",
+        "persistence_mode": settings.persistence_mode,
+        "entities": len(payload.nodes),
+        "relationships": len(payload.edges),
+        # Render supplies this non-secret identifier at runtime. Exposing the
+        # public Git SHA lets the post-deploy smoke test prove that it exercised
+        # the release which triggered it instead of a still-healthy old image.
+        "deployment_commit": os.getenv("RENDER_GIT_COMMIT") or os.getenv("GITHUB_SHA") or "local",
+    }
 
 
 @app.get("/api/health/live", tags=["system"])
