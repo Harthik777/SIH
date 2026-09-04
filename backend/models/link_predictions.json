@@ -1,0 +1,352 @@
+[
+  {
+    "node1": "JC100113",
+    "node2": "Cedric Hernandez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Marcus Ramirez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jalen Martinez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Adrian Allen",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Kendrick Hill",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Andre Garcia",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Dante Johnson",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Deandre Vance",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jamal Scott",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jerome King",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Terrence Flores",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Andre Flores",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Maurice Lopez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Tyler Brown",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Trevon Garcia",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jamal Harris",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Tyler Ramirez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jerome Vance",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Kareem Thomas",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Adrian Moore",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Isaiah Perez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Kendrick Walker",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jerome Wright",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Marcus Rodriguez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Jose Young",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Dante Ortiz",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Maurice Thompson",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Darius King",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Andre Harris",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Xavier Jenkins",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Lamar Moore",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Kevin Washington",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Devon Martinez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Kendrick Miller",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Brian King",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Marcus Taylor",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Damian Washington",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Adrian Rodriguez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Justin Jenkins",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Aaron Johnson",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Dominic Harris",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Kareem Martinez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Cedric Washington",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Corey Clark",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Tyrone Ortiz",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Reginald Brown",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Terrence Jones",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Adrian Ramirez",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Darius Miller",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  },
+  {
+    "node1": "JC100113",
+    "node2": "Aaron Jenkins",
+    "relationship": "PERPETRATED_BY",
+    "link_probability": 0.3259,
+    "predicted_link": 0
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "classification": "synthetic-evaluation-only",
+  "scenario": "Operation Suraksha",
+  "required_entities": [
+    "Subject A-17",
+    "Associate B-09",
+    "Coordinator C-04",
+    "+91-90000-01101",
+    "+91-90000-02201",
+    "+91-90000-03301",
+    "AC-SUR-1101",
+    "AC-SUR-2201",
+    "AC-SUR-3301",
+    "KA-01-XX-1701",
+    "Suryanet Digital Services",
+    "Majestic Transit Hub, Bengaluru"
+  ],
+  "required_relationship_types": ["CALLED", "TRANSFERRED_TO", "INVOLVES_VEHICLE", "MENTIONS_ORGANIZATION", "OCCURRED_AT"],
+  "expected_path": {"source": "Subject A-17", "target": "Coordinator C-04", "maximum_hops": 8},
+  "negative_identity_control": {
+    "left": "Kavya Rao",
+    "right": "K. Rao",
+    "expected_decision": "keep-separate",
+    "reason": "Distinct phone identifiers and near-simultaneous observations at different cities outweigh name similarity."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "sentinel-kg-investigation-platform",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:api\"",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:api": "python -m uvicorn app.main:app --reload --app-dir backend",
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix frontend run test && python -m pytest backend/tests",
+    "install:all": "npm --prefix frontend install && python -m pip install -r backend/requirements.txt",
+    "install:ml": "python -m pip install -r backend/requirements-ml.txt"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

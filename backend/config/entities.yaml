@@ -1,0 +1,27 @@
+entities:
+  CrimeIncident:
+    ui_type: event
+    key: case_number
+  Suspect:
+    ui_type: person
+    key: suspect_name
+  Vehicle:
+    ui_type: vehicle
+    key: vehicle_plate
+  CrimeType:
+    ui_type: crime
+    key: primary_type
+  Location:
+    ui_type: location
+    key: block
+  PoliceBeat:
+    ui_type: location
+    key: beat
+
+relationships:
+  - HAS_SUSPECT
+  - DRIVES_VEHICLE
+  - HAS_CRIME_TYPE
+  - OCCURRED_AT
+  - OCCURRED_IN_BEAT
+

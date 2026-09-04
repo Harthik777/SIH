@@ -1,0 +1,25 @@
+stages:
+  - validate_and_normalize
+  - entity_extraction
+  - relation_extraction
+  - graph_construction
+  - intelligence_analysis
+
+batch_size: 1000
+max_upload_mb: 500
+allowed_extensions:
+  - .csv
+  - .json
+  - .txt
+  - .xml
+  - .ttl
+  - .rdf
+
+risk:
+  critical_threshold: 85
+  high_threshold: 70
+  repeat_subject_increment: 4
+  repeat_location_increment: 3
+  domestic_increment: 5
+  no_arrest_increment: 4
+

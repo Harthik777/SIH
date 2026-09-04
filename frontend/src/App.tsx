@@ -1,0 +1,82 @@
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { alerts as initialAlerts, graphData as fallbackGraph } from './data/mockData'
+import { api } from './api'
+import type { AlertItem, GraphData, GraphNode, InvestigationWorkspace } from './types'
+import { Sidebar, type Section } from './components/Sidebar'
+import { Topbar } from './components/Topbar'
+import { Dashboard } from './components/Dashboard'
+import { EntityDrawer } from './components/EntityDrawer'
+import { TimelinePanel } from './components/TimelinePanel'
+import { MapPanel } from './components/MapPanel'
+
+const UploadPage = lazy(() => import('./components/UploadPage').then((module) => ({ default: module.UploadPage })))
+const AnalyticsPage = lazy(() => import('./components/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })))
+const AlertsPage = lazy(() => import('./components/AlertsPage').then((module) => ({ default: module.AlertsPage })))
+const ReportsPage = lazy(() => import('./components/ReportsPage').then((module) => ({ default: module.ReportsPage })))
+const SettingsPage = lazy(() => import('./components/SettingsPage').then((module) => ({ default: module.SettingsPage })))
+const NetworkGraph = lazy(() => import('./components/NetworkGraph').then((module) => ({ default: module.NetworkGraph })))
+const TraceLab = lazy(() => import('./components/TraceLab').then((module) => ({ default: module.TraceLab })))
+const FusionRoom = lazy(() => import('./components/FusionRoom').then((module) => ({ default: module.FusionRoom })))
+
+function App() {
+  const [section, setSection] = useState<Section>('dashboard')
+  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 800)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('sentinel-theme') as 'dark'|'light') || 'dark')
+  const [graph, setGraph] = useState<GraphData>(fallbackGraph)
+  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null)
+  const [alerts, setAlerts] = useState<AlertItem[]>(initialAlerts)
+  const [workspace, setWorkspace] = useState<InvestigationWorkspace | null>(null)
+
+  const refreshInvestigation = useCallback(async () => {
+    const [nextGraph, nextAlerts, nextWorkspace] = await Promise.all([
+      api.getGraph(),
+      api.getAlerts().catch(() => initialAlerts),
+      api.getInvestigations().catch(() => null),
+    ])
+    setGraph(nextGraph)
+    setAlerts(nextAlerts)
+    if (nextWorkspace) setWorkspace(nextWorkspace)
+    setSelectedNode(null)
+  }, [])
+  useEffect(() => { void refreshInvestigation() }, [refreshInvestigation])
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('sentinel-theme', theme)
+  }, [theme])
+
+  const navigate = (next: Section) => {
+    setSection(next)
+    if (window.innerWidth < 800) setCollapsed(true)
+  }
+
+  const content = (() => {
+    switch (section) {
+      case 'upload': return <UploadPage onInvestigationActivated={refreshInvestigation} />
+      case 'fusion': return <FusionRoom activeId={workspace?.active_id} onActivate={async (id) => { await api.activateInvestigation(id); await refreshInvestigation() }} onOpenTrace={() => setSection('trace')} />
+      case 'graph': return <div className="standard-page graph-page"><div className="page-heading"><div><span className="eyebrow">RELATIONSHIP INTELLIGENCE</span><h1>Knowledge graph explorer</h1><p>Explore connections, isolate communities, and uncover hidden structure.</p></div></div><NetworkGraph data={graph} selected={selectedNode} onSelect={setSelectedNode} tall /></div>
+      case 'timeline': return <div className="standard-page"><div className="page-heading"><div><span className="eyebrow">TEMPORAL INTELLIGENCE</span><h1>Investigation timeline</h1><p>Correlate entities, evidence, and risk signals across time.</p></div></div><TimelinePanel full version={workspace?.active_id} /></div>
+      case 'map': return <div className="standard-page"><div className="page-heading"><div><span className="eyebrow">GEOSPATIAL INTELLIGENCE</span><h1>Operational geography</h1><p>Trace incident concentrations, repeat locations, and operational-area exposure.</p></div></div><MapPanel full version={workspace?.active_id} /></div>
+      case 'analytics': return <AnalyticsPage graph={graph} investigationId={workspace?.active_id} />
+      case 'trace': return <TraceLab graph={graph} investigationId={workspace?.active_id} onSelect={setSelectedNode} />
+      case 'alerts': return <AlertsPage initialAlerts={alerts} nodes={graph.nodes} onAlertsChange={setAlerts} onAcknowledge={async (id) => { await api.acknowledgeAlert(id); setAlerts((items) => items.map((item) => item.id === id ? { ...item, acknowledged: true } : item)) }} onSelectNode={setSelectedNode} />
+      case 'reports': return <ReportsPage investigationName={workspace?.items.find((item) => item.id === workspace.active_id)?.name} />
+      case 'settings': return <SettingsPage theme={theme} onTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} />
+      default: {
+        const active = workspace?.items.find((item) => item.id === workspace.active_id)
+        return <Dashboard graph={graph} alerts={alerts} selected={selectedNode} onSelect={setSelectedNode} investigationId={active?.id} investigationName={active?.name} investigationSource={active?.source} sourceRecords={active?.records} />
+      }
+    }
+  })()
+
+  return (
+    <div className={`app-shell ${collapsed ? 'sidebar-is-collapsed' : ''}`}>
+      <Sidebar section={section} onChange={navigate} collapsed={collapsed} onCollapse={() => setCollapsed(!collapsed)} alertCount={alerts.filter((alert) => !alert.acknowledged).length} />
+      <Topbar theme={theme} onTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} nodes={graph.nodes} onSelectNode={setSelectedNode} onMenu={() => setCollapsed(!collapsed)} workspace={workspace} onInvestigationChange={async (id) => { await api.activateInvestigation(id); await refreshInvestigation() }} />
+      <main className="main-content"><Suspense fallback={<div className="page-loader"><span />Loading intelligence module…</div>}>{content}</Suspense></main>
+      <EntityDrawer node={selectedNode} graph={graph} onClose={() => setSelectedNode(null)} />
+      {selectedNode && <button className="drawer-scrim" onClick={() => setSelectedNode(null)} aria-label="Close entity profile" />}
+    </div>
+  )
+}
+
+export default App

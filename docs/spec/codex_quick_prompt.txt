@@ -1,0 +1,138 @@
+BUILD A KNOWLEDGE GRAPH INVESTIGATION PLATFORM
+
+SYSTEM REQUIREMENTS:
+- React 18+ frontend with TypeScript
+- FastAPI/Python backend
+- Neo4j for knowledge graph storage
+- PostgreSQL for metadata
+- Redis + Celery for async tasks
+- WebSockets for real-time updates
+
+PIPELINE (Backend Processing):
+RAW DATA → Data Cleaning → NLP Entity Extraction → Relation Extraction → Knowledge Graph → Graph Analytics (Node2Vec, GraphSAGE, centrality) → AI Analysis (anomaly detection, risk scoring, link prediction, community detection)
+
+FRONTEND DASHBOARD MUST INCLUDE:
+
+1. DATA UPLOAD & PROCESSING
+   - Drag-drop file upload (CSV, JSON, TTL, XML)
+   - Real-time pipeline progress with console logs
+   - Processing stage indicators
+   - Upload history
+
+2. NETWORK GRAPH VISUALIZATION
+   - Interactive graph with nodes (entities) and edges (relationships)
+   - Nodes color-coded by type (Person, Organization, Location, Event)
+   - Filter by entity/relationship type
+   - Layout options (Force-Directed, Hierarchical, Circular)
+   - Zoom, pan, search
+   - Click nodes for entity details
+   - Community detection highlighting
+
+3. TIMELINE VIEW
+   - Chronological display of events
+   - Draggable time range selector
+   - Filter by entity/relationship type
+   - Sync with graph selection
+
+4. LOCATION MAP
+   - Geospatial visualization using Leaflet
+   - Heat map of entity density
+   - Clustered markers
+   - Filter by type/date range
+
+5. RISK & ANOMALY DASHBOARD
+   - Overall risk score (0-100)
+   - Top 10 high-risk entities
+   - List of detected anomalies with severity
+   - Link predictions with confidence scores
+   - Visualization of anomalous subgraphs
+
+6. AI EXPLANATION ENGINE
+   - Natural language explanations for anomalies/risks
+   - Supporting evidence and related nodes
+   - Confidence levels
+   - "Explain More" detailed breakdowns
+
+7. ALERTS PANEL
+   - Real-time alerts for high-risk findings
+   - Alert history with filtering
+   - Acknowledgment logging
+   - Export capabilities
+
+8. ADVANCED ANALYTICS
+   - Graph metrics (nodes, edges, density, diameter)
+   - Centrality rankings (betweenness, closeness, degree)
+   - Degree distribution (log-log plot)
+   - Entity/relationship type distributions
+   - Node2Vec embedding visualization (t-SNE)
+   - GraphSAGE visualization
+
+9. SEARCH & FILTER
+   - Global autocomplete search
+   - Multi-filters: entity type, relationship type, date range, risk score, anomaly severity
+   - Saved filter combinations
+   - Export filtered subgraphs
+
+10. ENTITY PROFILE PANEL
+    - Entity attributes and metadata
+    - All relationships (incoming/outgoing)
+    - Risk score and anomaly flags
+    - Activity timeline
+    - Location history
+    - Add notes/tags, flag for investigation
+
+11. EXPORT & REPORTING
+    - Export graph (JSON, GraphML)
+    - Export subgraph selections
+    - Generate PDF investigation reports
+    - Export as CSV, GeoJSON
+    - Auto-generated investigation summaries
+
+12. SETTINGS
+    - User preferences (theme, default viz, alert sensitivity)
+    - NLP model selection
+    - Graph algorithm parameters
+    - User roles and access control
+
+BACKEND ENDPOINTS:
+POST /api/upload - Upload file
+POST /api/pipeline/start - Start processing
+WS /api/pipeline/stream/{id} - Real-time progress
+GET /api/graph/nodes - Get all nodes
+GET /api/graph/edges - Get all edges
+GET /api/graph/subgraph - Get filtered subgraph
+GET /api/analysis/anomalies - Get anomalies
+GET /api/analysis/risk-scores - Get risk scores
+GET /api/analysis/link-predictions - Get predictions
+GET /api/analysis/explanations/{id} - Get explanation
+GET /api/export/graph/{format} - Export graph
+GET /api/export/report/pdf - Generate report
+GET /api/visualization/* - Data for all viz components
+
+INTEGRATIONS:
+- Load ontology from TTL/RDF file
+- Import pre-trained NLP models (spaCy, HuggingFace)
+- Use Node2Vec and GraphSAGE for embeddings
+- Implement anomaly detection (Isolation Forest, LOF)
+- Risk scoring based on graph patterns
+- Link prediction using embeddings or graph neural networks
+- Community detection (Louvain/Leiden algorithms)
+
+DESIGN REQUIREMENTS:
+- Modern, clean UI with Tailwind CSS
+- Dark/light mode support
+- Mobile responsive
+- Tooltip help system
+- Real-time WebSocket updates to UI
+- Sub-second response times for filters/searches
+- Handle 10K+ node graphs
+
+DELIVERABLES:
+1. Full React frontend with all dashboard components
+2. FastAPI backend with complete API
+3. Database models (Neo4j + PostgreSQL)
+4. Celery task definitions for pipeline
+5. Docker setup (docker-compose)
+6. API documentation
+7. Configuration files for models/parameters
+8. Authentication/authorization system

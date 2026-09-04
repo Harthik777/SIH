@@ -1,0 +1,39 @@
+nlp:
+  active: sentinel-crime-ner-v1
+  fallback: rule-based-fir-parser
+  optional_spacy_model: en_core_web_sm
+  confidence_threshold: 0.78
+
+graph_embeddings:
+  node2vec:
+    dimensions: 128
+    walk_length: 30
+    walks_per_node: 10
+  graphsage:
+    task: binary-suspect-classification
+    input_features: 7
+    node_type_features:
+      - CASE
+      - SUSPECT
+      - CRIME_TYPE
+      - POLICE_BEAT
+      - LOCATION
+      - VEHICLE
+    structural_features:
+      - normalized_degree
+    hidden_channels:
+      - 32
+      - 32
+    output_classes:
+      - normal
+      - suspicious
+    layers: 2
+    dropout: 0.3
+    checkpoint: backend/models/graphsage_model.pt
+    notebook: backend/models/GraphSAGE_Model.ipynb
+
+anomaly_detection:
+  algorithms:
+    - transparent-rules
+    - isolation-forest
+    - local-outlier-factor

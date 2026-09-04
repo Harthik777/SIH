@@ -1,0 +1,11 @@
+{
+  "checkpoint": "backend\\models\\graphsage_model.pt",
+  "epochs": 200,
+  "split_seed": 42,
+  "model_seed": 1,
+  "best_epoch": 187,
+  "validation_f1": 1.0,
+  "validation_loss": 0.322381,
+  "training_suspects": 347,
+  "validation_suspects": 87
+}
