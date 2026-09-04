@@ -4,7 +4,7 @@
 
 | Profile | Purpose | Authentication | Evidence intake | Persistence | Connectivity |
 | --- | --- | --- | --- | --- | --- |
-| Public Render | Authenticated competition evaluation | Analyst/supervisor JWT sessions | Enabled for synthetic or legally shareable redacted files | Ephemeral runtime; bundled fixtures rebuild | Hybrid; supervisor-only OpenTimestamps |
+| Public Render | Authenticated competition evaluation | Analyst/supervisor JWT sessions | Enabled for synthetic or legally shareable redacted files | Managed PostgreSQL durable objects + local execution cache | Hybrid; supervisor-only OpenTimestamps |
 | Local development | Trusted developer machine | Optional | Enabled | Atomic local files | Hybrid-capable; anchoring disabled unless configured |
 | Private Docker | Single-machine investigative pilot | Required JWT; analyst/supervisor roles | Enabled | Docker volume + PostgreSQL + case-scoped Neo4j | Hybrid by default; offline mode supported |
 
@@ -29,7 +29,7 @@ python -c "from backend.app.security import hash_password; import getpass; print
 - Viewer: authenticated read access.
 - Analyst: evidence intake, pipeline execution, case activation, alert acknowledgement, reviewed identity dispositions and exports.
 - Supervisor: analyst privileges plus protected-person reveal, configuration changes and investigation deletion.
-- Authenticated public web: analyst and supervisor roles are enforced; uploads are enabled, but the free ephemeral host is restricted operationally to synthetic or legally shareable redacted files.
+- Authenticated public web: analyst and supervisor roles are enforced; PostgreSQL-backed uploads are enabled, but the free competition host remains restricted to synthetic or legally shareable redacted files.
 
 Protected-person reveal still requires a reason and authorization reference, and the reason is hashed before entering the audit event.
 
@@ -51,7 +51,7 @@ Calendar acceptance is not confirmation. The saved `.ots` proof must later be up
 
 Run `powershell -ExecutionPolicy Bypass -File scripts/backup_state.ps1`. The archive contains investigation snapshots, uploads and a SHA-256 manifest. Store backups on approved encrypted media outside the application host and test restoration under the agency's retention policy.
 
-PostgreSQL and Neo4j require their normal database-native backups in addition to the application-state archive. The script is intentionally not presented as a complete database backup.
+PostgreSQL and Neo4j require their normal database-native backups in addition to the application-state archive. The script is intentionally not presented as a complete database backup. The free hosted PostgreSQL resource expires after 30 days, so export required artifacts and rotate to a replacement provider before its expiry date.
 
 ## Incident response minimum
 

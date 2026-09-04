@@ -106,7 +106,11 @@ def list_investigations() -> dict[str, Any]:
         if active_id not in BUILT_IN_INVESTIGATION_IDS and not (STORE_DIR / f"{active_id}.json").exists():
             active_id = DEFAULT_INVESTIGATION_ID
         mode = get_settings().persistence_mode
-        persistence = "postgresql+neo4j+local-snapshot" if mode == "hybrid" else "local-json-atomic"
+        persistence = {
+            "local": "local-json-atomic",
+            "postgres": "postgresql-durable-object-store+local-cache",
+            "hybrid": "postgresql+neo4j+local-snapshot",
+        }[mode]
         return {"active_id": active_id, "items": items, "persistence": persistence}
 
 
@@ -173,8 +177,9 @@ def save_investigation(
             "owner": owner,
             "access_scope": "case-owner",
         }
+        snapshot_path = STORE_DIR / f"{investigation_id}.json"
         _write_json(
-            STORE_DIR / f"{investigation_id}.json",
+            snapshot_path,
             {"schema_version": 1, "investigation": entry, "graph": graph.model_dump(mode="json"), "records": records},
         )
         registry = _registry()
@@ -184,9 +189,11 @@ def save_investigation(
         if activate:
             registry["active_id"] = investigation_id
         _write_json(REGISTRY_PATH, registry)
-        if get_settings().persistence_mode == "hybrid":
-            from .database import persist_investigation
+        if get_settings().persistence_mode != "local":
+            from .database import persist_investigation, persist_state_path
 
+            persist_state_path(snapshot_path)
+            persist_state_path(REGISTRY_PATH)
             persist_investigation({**entry, "active": activate}, graph)
         return {**entry, "active": activate}
 
@@ -200,9 +207,10 @@ def activate_investigation(investigation_id: str) -> dict[str, Any]:
         registry = _registry()
         registry["active_id"] = investigation_id
         _write_json(REGISTRY_PATH, registry)
-        if get_settings().persistence_mode == "hybrid":
-            from .database import set_persisted_active
+        if get_settings().persistence_mode != "local":
+            from .database import persist_state_path, set_persisted_active
 
+            persist_state_path(REGISTRY_PATH)
             set_persisted_active(investigation_id)
         return {**entry, "active": True}
 
@@ -221,7 +229,9 @@ def delete_investigation(investigation_id: str) -> None:
         snapshot = (STORE_DIR / f"{investigation_id}.json").resolve()
         if STORE_DIR.resolve() in snapshot.parents:
             snapshot.unlink(missing_ok=True)
-        if get_settings().persistence_mode == "hybrid":
-            from .database import delete_persisted_investigation
+        if get_settings().persistence_mode != "local":
+            from .database import delete_persisted_investigation, delete_state_path, persist_state_path
 
+            persist_state_path(REGISTRY_PATH)
+            delete_state_path(snapshot)
             delete_persisted_investigation(investigation_id)

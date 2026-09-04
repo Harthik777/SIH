@@ -26,9 +26,9 @@ export function LoginPage({ onAuthenticated }: { onAuthenticated: (user: AuthUse
   return <main className="login-page">
     <section className="login-card panel">
       <Logo />
-      <span className="eyebrow"><ShieldCheck size={12}/> PRIVATE INVESTIGATION WORKSPACE</span>
+      <span className="eyebrow"><ShieldCheck size={12}/> SECURE HOSTED INVESTIGATION WORKSPACE</span>
       <h1>Authorized access only</h1>
-      <p>Sign in with a locally configured analyst or supervisor account. Credentials and evidence stay on this deployment.</p>
+      <p>Sign in with an analyst or supervisor account. Role checks protect every investigation API and PostgreSQL preserves competition-workspace state.</p>
       <form onSubmit={submit}>
         <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="username" required/></label>
         <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" required/></label>

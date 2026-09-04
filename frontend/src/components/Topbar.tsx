@@ -15,6 +15,7 @@ interface Props {
 
 export function Topbar({ theme, onTheme, nodes, onSelectNode, onMenu, onNotifications, workspace, onInvestigationChange }: Props) {
   const searchRef = useRef<HTMLInputElement>(null)
+  const durable = workspace?.persistence.startsWith('postgresql') ?? false
   useEffect(() => {
     const focusSearch = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -49,7 +50,7 @@ export function Topbar({ theme, onTheme, nodes, onSelectNode, onMenu, onNotifica
         <kbd><Command size={11} /> K</kbd>
       </div>
       <div className="top-actions">
-        <div className="sync-state" title="Local-first analysis with optional online verification"><i /> HYBRID</div>
+        <div className="sync-state" title={durable ? 'Investigation state is durably mirrored to managed PostgreSQL' : 'Atomic local investigation storage'}><i /> {durable ? 'DB DURABLE' : 'LOCAL'}</div>
         <button className="icon-button" onClick={onTheme} aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>

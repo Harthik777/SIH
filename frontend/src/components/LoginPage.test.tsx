@@ -7,7 +7,7 @@ vi.mock('../api', () => ({ api: { login } }))
 import { LoginPage } from './LoginPage'
 
 describe('LoginPage', () => {
-  it('authenticates the private workspace without exposing the password', async () => {
+  it('authenticates the hosted workspace without exposing the password', async () => {
     login.mockResolvedValue({ email: 'analyst@sentinel.local', role: 'analyst', mode: 'authenticated' })
     const authenticated = vi.fn()
     render(<LoginPage onAuthenticated={authenticated}/>)

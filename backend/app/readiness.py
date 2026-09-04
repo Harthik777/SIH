@@ -34,16 +34,19 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
     settings = get_settings()
     persistence_detail = "atomic local snapshots"
     persistence_ok = True
-    if settings.persistence_mode == "hybrid":
+    if settings.persistence_mode != "local":
         try:
-            from .database import persistence_health
+            from .database import durable_object_count, persistence_health
 
             health = persistence_health()
             persistence_ok = all(health.values())
-            persistence_detail = "PostgreSQL catalogue + case-scoped Neo4j graph + local snapshots"
+            if settings.persistence_mode == "hybrid":
+                persistence_detail = f"PostgreSQL durable objects + case-scoped Neo4j mirror ({durable_object_count()} objects)"
+            else:
+                persistence_detail = f"PostgreSQL durable object store + local execution cache ({durable_object_count()} objects)"
         except Exception as exc:
             persistence_ok = False
-            persistence_detail = f"hybrid persistence unavailable: {type(exc).__name__}"
+            persistence_detail = f"configured persistence unavailable: {type(exc).__name__}"
     benchmark_available = BENCHMARK_PATH.exists()
     model_evaluation_available = False
     fusion_assurance_available = False
@@ -107,11 +110,12 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
         "offline_capable": True,
         "online_capable": settings.connectivity_mode == "hybrid",
         "connectivity_mode": settings.connectivity_mode,
-        "external_services_required": False,
+        "external_services_required": settings.persistence_mode != "local",
+        "persistence_mode": settings.persistence_mode,
         "public_demo": public_demo,
         "active_investigation": {"id": active["id"], "name": active["name"]},
         "checks": checks,
         "audit": audit,
         "anchoring": anchoring,
-        "scope_note": "Readiness verifies bundled artifacts, local integrity, optional online adapters and configured pilot controls; it is not an accreditation or production-security certification.",
+        "scope_note": "Readiness verifies bundled artifacts, evidence integrity, configured persistence and optional online adapters; it is not an accreditation or production-security certification.",
     }

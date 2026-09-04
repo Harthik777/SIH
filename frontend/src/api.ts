@@ -79,6 +79,10 @@ export const api = {
     return json<UploadRecord>('/api/upload', { method: 'POST', body: form })
   },
 
+  async getUploads(): Promise<UploadRecord[]> {
+    return json<UploadRecord[]>('/api/uploads')
+  },
+
   async startPipeline(uploadId: string, activate = true): Promise<{ pipeline_id: string }> {
     return json<{ pipeline_id: string }>('/api/pipeline/start', {
       method: 'POST',

@@ -9,14 +9,14 @@ This scorecard maps Sentinel to the published SIH idea-selection dimensions: nov
 | Criterion | Sentinel evidence | Live proof | Honest boundary |
 | --- | --- | --- | --- |
 | Novelty | TRACE proof-carrying intelligence, record-level relationship provenance, model claim passport, protected-person-by-construction policy | Fusion Room → pattern assurance; TRACE Lab → path proof | Product combination is novel positioning, not a patent claim |
-| Complexity | Six-source schema mapping, ontology graph, temporal detectors, GraphSAGE adapter, hash-chain audit, privacy-preserving Bitcoin timestamping, private hybrid persistence | Architecture diagram; Fusion witness panel; API docs; GitHub CI | Single-node pilot, not a national distributed deployment |
+| Complexity | Six-source schema mapping, ontology graph, temporal detectors, GraphSAGE adapter, hash-chain audit, privacy-preserving Bitcoin timestamping, hosted PostgreSQL durability and optional Neo4j mirroring | Architecture diagram; Fusion witness panel; API docs; live readiness; GitHub CI | Single-node pilot, not a national distributed deployment |
 | Clarity | One guided Operation Suraksha story with declared acceptance truth and alternatives for every derived lead | Start guided demo; open “Challenge this lead” | Scenario is fictional and visibly labelled |
-| Feasibility | Runs on CPU, survives offline, uses optional free online verification, one-command local setup, one-service public deployment | Readiness panel; live Render URL | Free hosting cold-starts and has ephemeral state |
-| Practicability | Ingest → activate → analyze → trace → review → export workflow; private RBAC and durable adapters | Switch active investigation; create report | Agency formats and identity provider require pilot integration |
+| Feasibility | Runs on CPU, survives offline, uses optional free online verification, one-command local setup and a PostgreSQL-backed public deployment | Readiness panel; live Render URL | Free hosting cold-starts; free Render PostgreSQL expires after 30 days |
+| Practicability | Ingest → activate → analyze → trace → review → export workflow; hosted RBAC and durable application state | Upload and activate a case; restart-proof readiness; create report | Agency formats and identity provider require pilot integration |
 | Sustainability | Open file formats, local processing, standards-aligned ontology/provenance, no vendor AI dependency | JSON, GraphML, STIX 2.1, CSV, GeoJSON, PDF exports | Long-term ownership and support model must be agreed with sponsor |
 | Scale of impact | 10K/100K measured single-machine benchmark and case-isolated Neo4j design | Fusion readiness → scale proof | Benchmark is synthetic, single-process, and not a concurrency claim |
 | User experience | Responsive command centre, six-stage replay, explainable cards, safe reset, masked-person workflow | Complete judge walkthrough without terminal commands | User study remains an external validation gate |
-| Future progression | PostgreSQL/Neo4j/Redis/Celery profile, field-pilot protocol, SSO/object-storage/key-management seams | CI hybrid-persistence job; deployment guide | Accreditation, procurement and lawful data access are external |
+| Future progression | Live PostgreSQL object storage, optional Neo4j/Redis/Celery profile, field-pilot protocol, SSO and key-management seams | Live readiness; CI hybrid-persistence job; deployment guide | Accreditation, procurement and lawful data access are external |
 
 ## Five claims to demonstrate
 
@@ -34,7 +34,7 @@ This scorecard maps Sentinel to the published SIH idea-selection dimensions: nov
 - Release readiness: `/api/health/ready`
 - Model evidence: `/api/benchmarks/model` and `backend/benchmarks/model_evaluation.json`
 - Scale evidence: `/api/benchmarks/scale` and `backend/benchmarks/scale_results.json`
-- Persistence proof: `.github/workflows/ci.yml` → `hybrid-persistence`
+- Hosted persistence proof: `/api/health/ready` → `PostgreSQL durable object store`; `.github/workflows/ci.yml` → `hybrid-persistence`
 - Security and operational boundary: `docs/SECURITY_OPERATIONS.md`
 - Ledger/blockchain threat-model decision: `docs/LEDGER_DECISION.md`
 - Live checkpoint capability: `/api/audit/anchors`

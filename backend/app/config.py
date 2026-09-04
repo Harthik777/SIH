@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "sentinel-password"
     redis_url: str = "redis://localhost:6379/0"
-    persistence_mode: Literal["local", "hybrid"] = "local"
+    persistence_mode: Literal["local", "postgres", "hybrid"] = "local"
     connectivity_mode: Literal["offline", "hybrid"] = "hybrid"
     upload_dir: Path = Path(__file__).resolve().parent.parent / "data" / "uploads"
     investigation_dir: Path = Path(__file__).resolve().parent.parent / "data" / "investigations"

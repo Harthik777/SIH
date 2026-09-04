@@ -87,7 +87,7 @@ function App() {
 
   const content = (() => {
     switch (section) {
-      case 'upload': return <UploadPage onInvestigationActivated={refreshInvestigation} />
+      case 'upload': return <UploadPage persistence={workspace?.persistence} onInvestigationActivated={refreshInvestigation} />
       case 'fusion': return <FusionRoom activeId={workspace?.active_id} onActivate={async (id) => { await api.activateInvestigation(id); await refreshInvestigation() }} onOpenTrace={() => navigate('trace')} />
       case 'graph': return <div className="standard-page graph-page"><div className="page-heading"><div><span className="eyebrow">RELATIONSHIP INTELLIGENCE</span><h1>Knowledge graph explorer</h1><p>Explore connections, isolate communities, and uncover hidden structure.</p></div></div><NetworkGraph data={graph} selected={selectedNode} onSelect={setSelectedNode} tall /></div>
       case 'timeline': return <div className="standard-page"><div className="page-heading"><div><span className="eyebrow">TEMPORAL INTELLIGENCE</span><h1>Investigation timeline</h1><p>Correlate entities, evidence, and risk signals across time.</p></div></div><TimelinePanel full version={workspace?.active_id} /></div>

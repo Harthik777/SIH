@@ -4,16 +4,16 @@ Sentinel ships as one Docker web service: the first stage builds the React appli
 
 ## Authenticated public web edition (Render)
 
-The repository includes `render.yaml` for a free Singapore-region Docker web service. The public URL runs the complete application with `SENTINEL_PUBLIC_DEMO=false` and `SENTINEL_AUTH_MODE=required`: authenticated analysts can upload evidence, execute the pipeline, activate investigations, and use every analysis and export module. Optional OpenTimestamps audit-head checkpoints remain available to supervisors. The bundled demonstration evidence is synthetic.
+The repository includes `render.yaml` for a free Singapore-region Docker web service plus managed PostgreSQL. The public URL runs the complete application with required authentication and `SENTINEL_PERSISTENCE_MODE=postgres`: analysts can upload evidence, execute the pipeline, activate investigations, and use every analysis and export module. PostgreSQL durably mirrors source files, investigation snapshots, active-case state, the audit chain, review decisions, runtime controls and OpenTimestamps proof artifacts; each object is SHA-256 checked before restoration into the service's local execution cache.
 
 1. Push the repository to GitHub.
 2. Open Render → **New → Blueprint** and connect `Harthik777/SIH`.
-3. Confirm the `sentinel-sih-26189-harthik` free web service and deploy.
+3. Confirm both the `sentinel-sih-26189-harthik` web service and `sentinel-sih-postgres` database, then apply the Blueprint.
 4. In the service's **Environment** page, reveal or rotate `SENTINEL_ANALYST_PASSWORD` and `SENTINEL_SUPERVISOR_PASSWORD`. Keep them outside the repository and share the analyst credential with judges through an approved private channel.
-5. Wait for `/api/health` to report `auth_mode: required` and `public_demo: false`, then sign in at the assigned `onrender.com` URL.
+5. Wait for `/api/health` to report `auth_mode: required`, `public_demo: false`, and `persistence_mode: postgres`, then sign in at the assigned `onrender.com` URL.
 6. Upload a synthetic sample, run the pipeline, activate its investigation, and verify that the graph and reports switch to the new case.
 
-Render's free web service is appropriate for competition judging, but it sleeps after inactivity and uses an ephemeral filesystem. Its Blueprint caps individual uploads at 25 MB to protect the free CPU/RAM envelope. Uploaded files, generated investigations, audit events, decisions, checkpoints and proofs can disappear after a restart or redeploy; bundled investigations rebuild automatically. Download important reports and proof bundles immediately. Authentication protects access but does not turn the free host into an accredited evidence store. Use only synthetic or legally shareable redacted data on this competition service—never operational FIR/CDR or survivor information.
+Render's free web process sleeps after inactivity and its filesystem is ephemeral, but application state is now restored from managed PostgreSQL after restart or redeploy. The Blueprint caps individual uploads at 25 MB to protect the free CPU/RAM and 1 GB database envelopes. Render's free PostgreSQL instance expires 30 days after creation, so this profile is a time-bounded competition deployment rather than permanent evidence custody. Before expiry, create a replacement Render database or point `SENTINEL_DATABASE_URL` at a compatible no-cost PostgreSQL provider such as Neon. Download important reports and proof bundles regardless. Use only synthetic or legally shareable redacted data—never operational FIR/CDR or survivor information.
 
 OpenTimestamps calendar acceptance is initially shown as **calendar pending**. Bitcoin aggregation commonly takes hours; use **Check confirmation** later to upgrade the proof. The UI reports **Bitcoin confirmed** only after the upgraded proof matches a Bitcoin block header from the configured Esplora service.
 
@@ -49,9 +49,9 @@ Invoke-RestMethod http://localhost:8000/api/health
 Invoke-RestMethod http://localhost:8000/api/system/readiness
 ```
 
-## Durable private/agency-pilot edition
+## Optional self-hosted agency-pilot profile
 
-Run `docker compose up --build` only on a trusted network after copying `.env.example` to `.env` and replacing its credentials. The private profile sets `SENTINEL_AUTH_MODE=required`; the React application displays a login screen and every non-health API request requires a signed session. Analyst actions and supervisor-only actions are enforced server-side.
+Run `docker compose up --build` only on a trusted network after copying `.env.example` to `.env` and replacing its credentials. This optional profile sets `SENTINEL_AUTH_MODE=required`; the React application displays a login screen and every non-health API request requires a signed session. Analyst actions and supervisor-only actions are enforced server-side.
 
 The `sentinel_state` Docker volume persists uploads, investigation snapshots, audit entries, and identity-review decisions. New investigations are catalogued in PostgreSQL and mirrored into Neo4j using investigation-scoped keys. Create a verified state archive with:
 

@@ -56,6 +56,10 @@ def append_audit_event(
             handle.write(json.dumps(entry, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
+        if get_settings().persistence_mode != "local":
+            from .database import persist_state_path
+
+            persist_state_path(AUDIT_PATH)
         return entry
 
 

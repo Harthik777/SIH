@@ -78,6 +78,10 @@ def _atomic_write(path: Path, payload: bytes) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     temporary.replace(path)
+    if get_settings().persistence_mode != "local":
+        from .database import persist_state_path
+
+        persist_state_path(path)
 
 
 def _save_record(record: dict[str, Any]) -> None:

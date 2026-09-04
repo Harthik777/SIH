@@ -42,7 +42,7 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 - Private mode requires signed JWT sessions on non-health APIs; server-side analyst/supervisor permissions guard mutations and protected-person reveal.
 - Arbitrary credentials are rejected; PBKDF2 password hashes, credential rotation, token lifetime, signing secret, and exact origins are environment-configurable.
 - Request rate limiting, request IDs, liveness/readiness probes, operational metrics, HSTS, CSV-formula neutralization, and guarded XML/text ingestion are implemented.
-- Private Docker deployment uses a durable state volume, PostgreSQL investigation catalogue, and case-scoped Neo4j graph keys.
+- The live authenticated web deployment uses managed PostgreSQL for digest-verified durable application objects; the optional Docker profile adds a state volume and case-scoped Neo4j graph keys.
 - GraphSAGE checkpoints load with `weights_only=True`.
 - The model refuses inference on out-of-training-schema graphs and shows a structural preview instead.
 - The model claim passport labels feature/target dependency as high, field accuracy as not established, and operational release as blocked pending independent validation.
@@ -65,7 +65,7 @@ The geographic view uses a deterministic operational display grid because the su
 ## Verified acceptance checks
 
 - Backend: 35 local API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and claim-bounded evaluation, source-derived analytics, TRACE proof outputs, five-pattern fusion assurance, temporal emergence, per-edge record provenance, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, STIX interoperability, exports, and credential rejection.
-- Hybrid integration: a dedicated CI job starts real PostgreSQL and Neo4j services, persists two graphs with colliding local IDs, retrieves them independently, checks record digests, and deletes them.
+- Persistence integration: a dedicated CI job restores a digest-verified PostgreSQL object, then persists two graphs with colliding local IDs into real PostgreSQL and Neo4j services, retrieves them independently, checks record digests, and deletes them.
 - Frontend: 7 component tests covering the command center and case-first navigation, dynamic public/private session identity, private login, explainable briefing, interactive Fusion Room, and persistent workspace preferences.
 - Production frontend build passes under React 19.2 and supported Vite 6.4.
 - Frontend dependency audit reports zero known vulnerabilities.
@@ -75,4 +75,4 @@ The geographic view uses a deterministic operational display grid because the su
 
 ## Deployment boundary
 
-The complete React/FastAPI product runs from one authenticated public Docker web service for the internal round, including upload and pipeline execution. Because the free-host filesystem is ephemeral, that service is for synthetic or legally shareable redacted competition inputs only. The private single-machine profile adds durable state, PostgreSQL/Neo4j persistence, backup and monitoring—not certification. Agency deployment still requires identity-provider integration, approved malware scanning, key management, retention policy, jurisdiction-specific privacy controls, independent model validation, and red-team/security accreditation.
+The complete React/FastAPI product runs from an authenticated public Docker web service for the internal round, including upload and pipeline execution. Managed PostgreSQL durably retains digest-verified application objects across web-service restarts; the free database itself expires after 30 days and is therefore competition infrastructure, not evidence custody. The optional self-hosted profile adds a case-scoped Neo4j mirror and database-native backup paths. Agency deployment still requires identity-provider integration, approved malware scanning, key management, retention policy, jurisdiction-specific privacy controls, independent model validation, and red-team/security accreditation.

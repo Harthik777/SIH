@@ -267,6 +267,10 @@ def record_resolution_decision(
         temporary = DECISIONS_PATH.with_name(f".{DECISIONS_PATH.name}.{uuid4().hex}.tmp")
         temporary.write_text(json.dumps(decisions, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         temporary.replace(DECISIONS_PATH)
+        if get_settings().persistence_mode != "local":
+            from .database import persist_state_path
+
+            persist_state_path(DECISIONS_PATH)
     audit = append_audit_event(
         "identity-resolution.decision",
         candidate_id,
@@ -281,6 +285,10 @@ def reset_demo(actor: str = "local-analyst") -> dict[str, Any]:
     with _LOCK:
         decision_count = len(_read_decisions())
         DECISIONS_PATH.unlink(missing_ok=True)
+        if get_settings().persistence_mode != "local":
+            from .database import delete_state_path
+
+            delete_state_path(DECISIONS_PATH)
     audit = append_audit_event(
         "demo.reset",
         SURAKSHA_ID,

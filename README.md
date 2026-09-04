@@ -78,7 +78,7 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Drag-and-drop CSV, JSON, TXT, XML, RDF, and TTL ingestion
 - Five-stage processing with real source profiling, SHA-256 fingerprints, streamed logs, and measured graph output
 - Automatic FIR narrative extraction plus explicit field mapping for CDR, transaction, surveillance, and OSINT-shaped CSV/JSON records
-- Durable local investigation snapshots with an active-investigation selector; a processed graph immediately drives every downstream view
+- Managed PostgreSQL-backed investigation snapshots with an active-investigation selector; a processed graph immediately drives every downstream view
 - Operation Suraksha Fusion Room: a six-stage cross-source replay, synthetic ground-truth scorecard, hidden-network reveal, and safe entity-resolution decision control
 - Deterministic fusion assurance: communication bursts, repeated transfers, directed account cycles, time/location convergence, and cross-channel bridge detection computed from source records
 - Temporal graph emergence: day-by-day reconstruction of evidence, entities, relationships, channels, and newly detectable patterns
@@ -89,7 +89,7 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Reproducible 10k/100k synthetic scale benchmark with build time, throughput, Python allocation peak, search latency, and path latency
 - Interactive Cytoscape knowledge graph with a readable two-hop focused view, full-network toggle, contextual search, type filters, layouts, zoom, and entity dossiers
 - Source-derived timeline and police-beat concentration views with non-GPS proxy coordinates labelled explicitly
-- Active-graph risk scoring, anomaly triage, persisted-in-session alert acknowledgement, and natural-language explanations
+- Active-graph risk scoring, anomaly triage, durably persisted alert acknowledgement, and natural-language explanations
 - Key-individual rankings using degree, deterministic sampled betweenness, reach, and composite influence
 - Communities, type distributions, exact degree distribution, modularity, and clearly labelled topology visualization
 - GraphSAGE suspect-risk feature preparation, checkpoint inference, held-out proxy evaluation, and a model claim passport that blocks field-accuracy claims
@@ -102,10 +102,10 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Persistent case workflow showing the active case, investigation stage, open-signal count, and one next-best action on every route
 - Projector-readable hierarchy, stronger contrast, 40–44 px controls, keyboard search, skip navigation, labelled filters, browser history, and responsive layouts verified at a 430 px viewport
 - Dark/light themes, recoverable lazy-module failures, and locally persisted workspace preferences
-- Signed JWT sessions, analyst/supervisor route enforcement, audited login, password-hash support, and a private login screen
+- Signed JWT sessions, analyst/supervisor route enforcement, audited login, password-hash support, and a secure hosted login screen
 - Request rate limiting, request IDs, liveness/readiness probes, Prometheus-compatible metrics, CSP/HSTS headers, and CSV-formula neutralization
 - Bounded text ingestion that rejects executable/archive masquerading, binary NUL content, XML entity declarations, oversized records, columns, and fields
-- PostgreSQL investigation catalogue, case-scoped Neo4j graph mirroring, atomic fallback snapshots, durable Docker state volume, and verified backup script
+- Hosted PostgreSQL investigation catalogue and digest-verified object store, optional case-scoped Neo4j mirroring, atomic execution cache, and verified backup script
 - Redis/Celery worker seam and Docker deployment
 
 ## Data and ontology integration
@@ -185,7 +185,7 @@ frontend/src/
 backend/
 ├── app/main.py              REST, WebSocket, analytics, and exports
 ├── app/crime_pipeline.py    FIR extraction and graph construction
-├── app/investigation_store.py Durable local active-graph workspace
+├── app/investigation_store.py Active-graph workspace with durable adapters
 ├── app/network_intelligence.py Source-derived topology, timeline, map, and alerts
 ├── app/trace_engine.py        Proof paths, temporal motifs, counterfactuals, receipts
 ├── app/suraksha.py            Flagship replay, ground-truth evaluation, identity controls
@@ -194,7 +194,7 @@ backend/
 ├── app/security.py             JWT authentication, PBKDF2 and role enforcement
 ├── app/operations.py           Rate limiting, request telemetry and metrics
 ├── app/readiness.py            Offline release gate and benchmark discovery
-├── app/database.py             Active PostgreSQL + case-scoped Neo4j adapters
+├── app/database.py             Hosted PostgreSQL state + optional Neo4j mirror
 ├── app/celery_app.py        Redis/Celery task entry point
 ├── data/                    Synthetic flagship fixtures plus supplied CSV/FIR corpus
 ├── models/                     GraphSAGE notebook, graph, outputs, and checkpoint
@@ -238,4 +238,4 @@ This runs the frontend component tests and backend API tests. A production front
 
 ## Production notes
 
-The default API graph store is durable local JSON with atomic replacement, designed for free single-machine evaluation. The private Docker profile activates hybrid persistence: PostgreSQL catalogues case metadata while Neo4j stores case-scoped nodes and relationships, with local snapshots retained for recovery. Authentication is mandatory in that profile and role checks protect sensitive mutations and protected-person reveal. A separate GitHub Actions job boots real PostgreSQL and Neo4j service containers, round-trips two same-ID graphs, and verifies case isolation on every release. See [`docs/SECURITY_OPERATIONS.md`](docs/SECURITY_OPERATIONS.md) for credentials, backup, monitoring and the remaining agency-accreditation boundary.
+The live Render application uses managed PostgreSQL for its case catalogue and digest-verified durable object store. Uploaded sources, investigation snapshots, the active-case registry, audit chain, identity decisions, runtime controls, timestamp checkpoints and proofs are restored into the web service's local execution cache after a restart. The optional self-hosted profile additionally mirrors case-scoped graph topology into Neo4j. A separate GitHub Actions job verifies both PostgreSQL restoration and real PostgreSQL/Neo4j case isolation on every release. See [`docs/SECURITY_OPERATIONS.md`](docs/SECURITY_OPERATIONS.md) for credentials, backup, monitoring and the remaining agency-accreditation boundary.

@@ -38,7 +38,7 @@ For maximum trust minimization, export the checkpoint and `.ots` proof and verif
 - Private deployments require a supervisor-authorized session for checkpoint submission and refresh.
 - Calendar URLs are configured server-side; proof upgrades accept only HTTPS OpenTimestamps calendar domains.
 - A failed or unavailable external service never blocks local analysis, audit verification, reporting, or export.
-- Public free-hosting storage is ephemeral, so users must download both the checkpoint JSON and `.ots` proof for durable custody.
+- The hosted web filesystem is ephemeral, but checkpoint JSON and `.ots` proofs are mirrored into PostgreSQL and digest-checked on restoration. Users must still download both artifacts for independent custody because the free database is time-bounded.
 
 ## API and evidence
 

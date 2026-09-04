@@ -11,7 +11,7 @@
   </defs>
   <rect width="1280" height="720" fill="url(#bg)"/>
   <text x="54" y="58" class="k">SENTINEL / SIH 26189</text><text x="54" y="91" class="h" font-size="28">Privacy-first criminal network intelligence — one deployable web service</text>
-  <text x="54" y="116" class="t">Hybrid online/offline · authenticated public web app · durable private pilot · no paid API dependency</text>
+  <text x="54" y="116" class="t">Hybrid online/offline · authenticated public web app · hosted durable state · no paid API dependency</text>
 
   <path class="line" d="M267 340H351"/><path class="line" d="M567 340H651"/><path class="line" d="M867 340H951"/>
   <path class="dash" d="M180 558V615H1085V558"/>
@@ -32,7 +32,7 @@
 
   <g transform="translate(651 164)"><rect class="box" width="216" height="352"/><text x="20" y="34" class="k">03 / INTELLIGENCE</text><text x="20" y="64" class="h">Typed evidence graph</text>
     <circle cx="55" cy="134" r="24" fill="#9b8cff"/><circle cx="155" cy="120" r="22" fill="#45d6b1"/><circle cx="126" cy="205" r="24" fill="#f6b85b"/><circle cx="51" cy="235" r="19" fill="#5ca9ff"/><path d="M76 129L133 122M68 151L108 191M140 141L130 181M73 225L103 210" stroke="#9baea7" stroke-width="2"/>
-    <text x="20" y="291" class="t">TRACE evidence proofs</text><text x="20" y="314" class="t">Model claim passport</text><text x="20" y="337" class="t">PostgreSQL · case-scoped Neo4j</text>
+    <text x="20" y="291" class="t">TRACE evidence proofs</text><text x="20" y="314" class="t">Model claim passport</text><text x="20" y="337" class="t">Hosted PostgreSQL · optional Neo4j mirror</text>
   </g>
 
   <g transform="translate(951 164)"><rect class="box" width="277" height="352"/><text x="20" y="34" class="k">04 / INVESTIGATE</text><text x="20" y="64" class="h">React web command center</text>

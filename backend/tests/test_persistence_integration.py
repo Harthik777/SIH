@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
 
@@ -83,3 +84,37 @@ def test_hybrid_persistence_is_durable_and_case_isolated():
     finally:
         for investigation_id in (first_id, second_id):
             delete_persisted_investigation(investigation_id)
+
+
+def test_postgres_profile_restores_digest_verified_state_objects():
+    from app.config import get_settings
+    from app.database import (
+        delete_state_path,
+        durable_object_count,
+        initialize_persistence,
+        persist_state_path,
+        persistence_health,
+        restore_state_objects,
+    )
+
+    settings = get_settings()
+    previous_mode = settings.persistence_mode
+    target = Path(settings.investigation_dir) / "ci-hosted-durability.json"
+    settings.persistence_mode = "postgres"
+    try:
+        initialize_persistence()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text('{"case":"hosted","durable":true}', encoding="utf-8")
+        persist_state_path(target)
+        target.unlink()
+
+        assert restore_state_objects() >= 1
+        assert target.read_text(encoding="utf-8") == '{"case":"hosted","durable":true}'
+        assert durable_object_count() >= 1
+        assert persistence_health() == {"postgresql": True}
+    finally:
+        try:
+            delete_state_path(target)
+        finally:
+            target.unlink(missing_ok=True)
+            settings.persistence_mode = previous_mode

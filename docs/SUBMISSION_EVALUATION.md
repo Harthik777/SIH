@@ -18,12 +18,13 @@
 | Protected-person risk/ML exposure | 0 | Two nodes fixed at risk 0 and removed before model feature generation |
 | Tamper-evident audit | Valid | `/api/audit/verify` recalculates sequence, previous hash, and content hash |
 | Larger supplied corpus | 500 records | 1,530 nodes and 2,127 relationships |
-| Backend verification | 34 tests passed, 1 integration test conditionally skipped locally | `pytest -q`; hybrid persistence runs with service containers in CI |
+| Backend verification | 37 tests passed, 2 integration tests conditionally skipped locally | `pytest -q`; PostgreSQL restoration and hybrid persistence run with service containers in CI |
 | External audit witness | Real calendar submission verified; initial state correctly remains pending | OpenTimestamps `.ots` proof and `/api/audit/anchors`; Bitcoin aggregation is asynchronous |
-| Frontend verification | 5 tests passed | `npm test`; all eleven routes also pass a 430 px viewport overflow/target-size audit |
-| Private access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
+| Frontend verification | 7 tests passed | `npm test`; all eleven routes also pass a 430 px viewport overflow/target-size audit |
+| Authenticated access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
 | Model evaluation | Leakage-audited, claim-bounded | Perfect reproduction result quarantined; ten-trial 20% evidence-masking stress F1 `0.825` mean (`0.780–0.849`); field accuracy not established |
-| Hybrid persistence | CI-verified | Real PostgreSQL and Neo4j round trip with two case-isolated graphs |
+| Hosted durability | Live profile + CI-verified | Managed PostgreSQL restores digest-verified uploads, cases, audit/review state and proof artifacts after web restarts |
+| Hybrid persistence | CI-verified | Real PostgreSQL and Neo4j round trip with two case-isolated graphs; optional Neo4j mirror for self-hosted/Aura configuration |
 
 The deployable NumPy GraphSAGE forward pass was compared across all 434 suspect nodes with the PyTorch Geometric implementation: maximum probability delta `0.0`, with identical classifications. The lightweight artifact enables real checkpoint inference on the free web image while the training notebook and full ML runtime remain available locally. The version-2 model artifact explicitly records target/input dependency and checkpoint-selection leakage; no perfect metric is presented as field performance.
 
@@ -51,17 +52,17 @@ Entity-resolution precision is intentionally reported as **not applicable**: Sen
 | Tamper evidence | External process | Product dependent | Product dependent | Local SHA-256 chain plus optional blinded OpenTimestamps/Bitcoin checkpoint |
 | Works without paid APIs | Yes | Product dependent | Usually no | Yes |
 | Natural-language presentation | Manual | Limited | Strong | Deterministic evidence-backed briefing, no hallucinated facts |
-| Public demonstration safety | Depends on operator | Depends on product | Data-egress risk | Login-protected web workspace; competition host restricted to synthetic/redacted inputs and explicit ephemeral-storage warning |
+| Public demonstration safety | Depends on operator | Depends on product | Data-egress risk | Login-protected web workspace; competition host restricted to synthetic/redacted inputs and explicit free-database lifetime warning |
 
 This comparison describes architectural categories, not audited claims about named competitors.
 
 ## Known limits and next production gates
 
-- Public free hosting has ephemeral local storage; audit events, decisions and timestamp proofs reset on service restart. Download checkpoint/proof pairs immediately; the private build persists them locally.
+- The public web filesystem is ephemeral, but application state is restored from managed PostgreSQL. Render's free database expires after 30 days, so rotate the connection or recreate the resource before expiry and always export required proof bundles.
 - The 100k benchmark proves bounded single-machine behavior, not concurrent casework or national-scale throughput.
 - The GraphSAGE checkpoint reproduces the supplied notebook's label rule and split; it is not independently validated on operational Indian data.
 - The synthetic protected-person vault proves the interaction and audit policy, not compliance with an agency's final authorization model.
-- The private pilot now provides local JWT authentication, analyst/supervisor authorization, persistent Docker state, PostgreSQL catalogue, case-scoped Neo4j mirroring, rate limits and operational probes. Agency production still requires identity-provider federation, encryption key management, approved malware scanning, durable object storage, retention/deletion policy, approved redacted datasets, fairness testing, penetration testing, and formal accreditation.
+- The hosted pilot provides JWT authentication, analyst/supervisor authorization, PostgreSQL durable objects, rate limits and operational probes. The optional self-hosted profile adds case-scoped Neo4j mirroring. Agency production still requires identity-provider federation, encryption key management, approved malware scanning, retention/deletion policy, approved redacted datasets, fairness testing, penetration testing, and formal accreditation.
 
 ## Submission decision
 

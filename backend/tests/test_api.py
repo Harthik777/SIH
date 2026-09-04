@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,8 +28,17 @@ def test_health_reports_loaded_crime_graph():
     assert payload["status"] == "ok"
     assert payload["entities"] > 1000
     assert payload["relationships"] > 1000
+    assert payload["persistence_mode"] == "local"
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
+
+
+def test_render_blueprint_enables_managed_postgres_for_the_public_workspace():
+    manifest = (Path(__file__).resolve().parents[2] / "render.yaml").read_text(encoding="utf-8")
+    assert "SENTINEL_PERSISTENCE_MODE\n        value: postgres" in manifest
+    assert "fromDatabase:" in manifest
+    assert "name: sentinel-sih-postgres" in manifest
+    assert "ipAllowList: []" in manifest
 
 
 def test_local_login_rejects_arbitrary_credentials():

@@ -52,6 +52,35 @@ system_config: dict[str, Any] = {
     "parameters": {"community_resolution": 1.0, "link_threshold": 0.78},
 }
 acknowledged_alerts: set[str] = set()
+RUNTIME_STATE_PATH = settings.investigation_dir / "runtime_state.json"
+
+
+def _restore_runtime_state() -> None:
+    if not RUNTIME_STATE_PATH.exists():
+        return
+    try:
+        payload = json.loads(RUNTIME_STATE_PATH.read_text(encoding="utf-8"))
+        if isinstance(payload.get("system_config"), dict):
+            system_config.update(payload["system_config"])
+        acknowledged_alerts.update(str(item) for item in payload.get("acknowledged_alerts", []))
+    except (OSError, TypeError, json.JSONDecodeError):
+        return
+
+
+def _persist_runtime_state() -> None:
+    payload = {
+        "schema_version": 1,
+        "system_config": system_config,
+        "acknowledged_alerts": sorted(acknowledged_alerts),
+    }
+    RUNTIME_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    temporary = RUNTIME_STATE_PATH.with_name(f".{RUNTIME_STATE_PATH.name}.{uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    temporary.replace(RUNTIME_STATE_PATH)
+    if settings.persistence_mode != "local":
+        from .database import persist_state_path
+
+        persist_state_path(RUNTIME_STATE_PATH)
 
 
 @asynccontextmanager
@@ -64,11 +93,13 @@ async def lifespan(_: FastAPI):
         raise RuntimeError("SENTINEL_SECRET_KEY must contain at least 32 non-default characters when authentication is required")
     if settings.auth_mode == "required" and not settings.private_credentials_configured:
         raise RuntimeError("Replace the default analyst and supervisor credentials before enabling required authentication")
-    if settings.persistence_mode == "hybrid":
-        from .database import initialize_persistence, load_persisted_uploads
+    if settings.persistence_mode != "local":
+        from .database import initialize_persistence, load_persisted_uploads, restore_state_objects
 
         initialize_persistence()
+        restore_state_objects()
         uploads.update({item.id: item for item in load_persisted_uploads()})
+    _restore_runtime_state()
     yield
 
 
@@ -166,7 +197,7 @@ def node_or_404(node_id: str):
 @app.get("/api/health", tags=["system"])
 def health():
     payload = graph()
-    return {"status": "ok", "environment": settings.environment, "connectivity_mode": settings.connectivity_mode, "public_demo": settings.public_demo, "auth_mode": settings.auth_mode, "security_mode": "configured" if settings.production_secret_configured else "development-secret", "entities": len(payload.nodes), "relationships": len(payload.edges)}
+    return {"status": "ok", "environment": settings.environment, "connectivity_mode": settings.connectivity_mode, "public_demo": settings.public_demo, "auth_mode": settings.auth_mode, "security_mode": "configured" if settings.production_secret_configured else "development-secret", "persistence_mode": settings.persistence_mode, "entities": len(payload.nodes), "relationships": len(payload.edges)}
 
 
 @app.get("/api/health/live", tags=["system"])
@@ -228,9 +259,10 @@ async def upload_file(file: Annotated[UploadFile, File()], principal: Annotated[
             output.write(chunk)
     record.size = total
     uploads[record.id] = record
-    if settings.persistence_mode == "hybrid":
-        from .database import persist_upload
+    if settings.persistence_mode != "local":
+        from .database import persist_state_path, persist_upload
 
+        persist_state_path(destination)
         persist_upload(record, principal.email, principal.role)
     append_audit_event("evidence.upload", record.id, {"filename": filename, "bytes": total}, actor=principal.email)
     return record
@@ -254,9 +286,10 @@ def delete_upload(upload_id: str, principal: Annotated[Principal, Depends(requir
     if upload is None:
         raise HTTPException(status_code=404, detail="Upload not found")
     remove_upload_file(settings.upload_dir, upload)
-    if settings.persistence_mode == "hybrid":
-        from .database import delete_persisted_upload
+    if settings.persistence_mode != "local":
+        from .database import delete_persisted_upload, delete_state_path
 
+        delete_state_path(settings.upload_dir / f"{upload.id}_{upload.filename}")
         delete_persisted_upload(upload_id)
     append_audit_event("evidence.delete", upload_id, {"filename": upload.filename}, actor=principal.email)
 
@@ -789,6 +822,7 @@ def acknowledge_alert(alert_id: str, principal: Annotated[Principal, Depends(req
     if alert is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     acknowledged_alerts.add(alert_id)
+    _persist_runtime_state()
     alert.acknowledged = True
     append_audit_event("alert.acknowledge", alert_id, {"title": alert.title}, actor=principal.email)
     return alert
@@ -971,6 +1005,7 @@ def get_config():
 def update_config(update: ConfigUpdate, principal: Annotated[Principal, Depends(require_roles("supervisor"))]):
     for key, value in update.model_dump(exclude_none=True).items():
         system_config[key] = value
+    _persist_runtime_state()
     append_audit_event("configuration.update", "system", {"keys": sorted(update.model_dump(exclude_none=True))}, actor=principal.email)
     return system_config
 

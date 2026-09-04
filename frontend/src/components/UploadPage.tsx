@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronRight, Database, File, FileJson, LoaderCircle, Play, ShieldCheck, UploadCloud, X } from 'lucide-react'
 import { api } from '../api'
 import type { PipelineRun, PipelineStage, UploadRecord } from '../types'
@@ -21,7 +21,7 @@ function formatSize(size: number) {
   return size > 1_000_000 ? `${(size / 1_000_000).toFixed(1)} MB` : `${Math.round(size / 1000)} KB`
 }
 
-export function UploadPage({ onInvestigationActivated }: { onInvestigationActivated?: () => Promise<void> }) {
+export function UploadPage({ persistence, onInvestigationActivated }: { persistence?: string; onInvestigationActivated?: () => Promise<void> }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [selected, setSelected] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -30,6 +30,11 @@ export function UploadPage({ onInvestigationActivated }: { onInvestigationActiva
   const [logs, setLogs] = useState<string[]>(['[system] Pipeline ready. Waiting for input.'])
   const [uploads, setUploads] = useState(seededUploads)
   const [result, setResult] = useState<PipelineRun['result'] | null>(null)
+  const durable = persistence?.startsWith('postgresql') ?? false
+
+  useEffect(() => {
+    void api.getUploads().then(setUploads).catch(() => setUploads(seededUploads))
+  }, [])
 
   const pick = (files: FileList | null) => {
     if (files?.[0]) {
@@ -76,7 +81,7 @@ export function UploadPage({ onInvestigationActivated }: { onInvestigationActiva
 
   return (
     <div className="standard-page">
-      <div className="page-heading"><div><span className="eyebrow">DATA OPERATIONS</span><h1>Ingest intelligence</h1><p>Transform source files into connected, explainable intelligence.</p></div><div className="secure-pill"><ShieldCheck size={14}/> Local-first · no cloud API</div></div>
+      <div className="page-heading"><div><span className="eyebrow">DATA OPERATIONS</span><h1>Ingest intelligence</h1><p>Transform source files into connected, explainable intelligence.</p></div><div className="secure-pill"><ShieldCheck size={14}/> {durable ? 'Managed PostgreSQL · durable state' : 'Local-first · no cloud API'}</div></div>
       <div className="ingestion-grid">
         <section className="panel upload-panel">
           <div className="panel-header"><div><span className="eyebrow">01 · SOURCE DATA</span><h2>Upload evidence</h2></div><span className="supported-formats">CSV · JSON · TXT · XML · RDF/TTL</span></div>
@@ -107,8 +112,8 @@ export function UploadPage({ onInvestigationActivated }: { onInvestigationActiva
         </section>
       </div>
       <section className="panel history-panel">
-        <div className="panel-header"><div><span className="eyebrow">SOURCE REGISTER</span><h2>Verified local inputs</h2></div><span className="source-label">{uploads.length} SOURCES</span></div>
-        <div className="data-table"><div className="table-row table-head"><span>Source file</span><span>Records</span><span>Size</span><span>Imported</span><span>Status</span><span>Storage</span></div>{uploads.map((upload) => <div className="table-row" key={upload.id}><span><File size={15}/><strong>{upload.filename}</strong></span><span>{upload.records.toLocaleString()}</span><span>{formatSize(upload.size)}</span><span>{new Date(upload.created_at).toLocaleDateString()}</span><span><i className={`status-dot ${upload.status}`}/>{upload.status}</span><span>LOCAL</span></div>)}</div>
+        <div className="panel-header"><div><span className="eyebrow">SOURCE REGISTER</span><h2>Verified source inputs</h2></div><span className="source-label">{uploads.length} SOURCES</span></div>
+        <div className="data-table"><div className="table-row table-head"><span>Source file</span><span>Records</span><span>Size</span><span>Imported</span><span>Status</span><span>Storage</span></div>{uploads.map((upload) => <div className="table-row" key={upload.id}><span><File size={15}/><strong>{upload.filename}</strong></span><span>{upload.records.toLocaleString()}</span><span>{formatSize(upload.size)}</span><span>{new Date(upload.created_at).toLocaleDateString()}</span><span><i className={`status-dot ${upload.status}`}/>{upload.status}</span><span>{durable ? 'POSTGRESQL' : 'LOCAL'}</span></div>)}</div>
       </section>
     </div>
   )

@@ -1,15 +1,18 @@
-"""PostgreSQL catalogue and case-scoped Neo4j persistence adapters.
+"""PostgreSQL durable state and optional case-scoped Neo4j graph mirroring.
 
-The lightweight profile uses atomic local snapshots. The private Docker profile
-activates these adapters and retains the snapshots as a recovery layer.
+Atomic local snapshots remain the execution and recovery layer. Hosted and
+private profiles can durably mirror those artifacts into PostgreSQL; the hybrid
+profile additionally mirrors graph topology into Neo4j.
 """
 
+import hashlib
 from datetime import datetime
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 from neo4j import GraphDatabase
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, Text, create_engine, func, text, update
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text, create_engine, delete, func, text, update
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from .config import get_settings
@@ -85,6 +88,16 @@ class SavedFilter(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class DurableObject(Base):
+    """Provider-neutral binary object store backed by PostgreSQL."""
+
+    __tablename__ = "durable_objects"
+    key: Mapped[str] = mapped_column(String(640), primary_key=True)
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    sha256: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class Neo4jGraphRepository:
     """Batch-safe Neo4j adapter with indexed MERGE operations."""
 
@@ -155,7 +168,10 @@ class Neo4jGraphRepository:
 
 @lru_cache(maxsize=1)
 def _engine():
-    return create_engine(get_settings().database_url, pool_pre_ping=True)
+    url = get_settings().database_url
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url.removeprefix("postgresql://")
+    return create_engine(url, pool_pre_ping=True)
 
 
 @lru_cache(maxsize=1)
@@ -165,19 +181,111 @@ def _session_factory() -> sessionmaker[Session]:
 
 def initialize_persistence() -> None:
     Base.metadata.create_all(_engine())
-    repository = Neo4jGraphRepository()
-    try:
-        repository.ensure_schema()
-    finally:
-        repository.close()
+    if get_settings().persistence_mode == "hybrid":
+        repository = Neo4jGraphRepository()
+        try:
+            repository.ensure_schema()
+        finally:
+            repository.close()
+
+
+def _state_key(path: Path) -> str:
+    settings = get_settings()
+    resolved = path.resolve()
+    exact = [
+        (settings.audit_path.resolve(), "audit/log"),
+        (settings.decisions_path.resolve(), "decisions/state"),
+    ]
+    for candidate, key in exact:
+        if resolved == candidate:
+            return key
+    directories = [
+        (settings.audit_anchor_dir.resolve(), "anchors"),
+        (settings.upload_dir.resolve(), "uploads"),
+        (settings.investigation_dir.resolve(), "investigations"),
+    ]
+    for root, namespace in directories:
+        if resolved == root or root in resolved.parents:
+            relative = resolved.relative_to(root).as_posix()
+            return f"{namespace}/{relative}"
+    raise ValueError(f"Path is outside the configured durable-state roots: {path}")
+
+
+def _path_for_state_key(key: str) -> Path:
+    settings = get_settings()
+    if key == "audit/log":
+        return settings.audit_path
+    if key == "decisions/state":
+        return settings.decisions_path
+    roots = {
+        "anchors": settings.audit_anchor_dir,
+        "uploads": settings.upload_dir,
+        "investigations": settings.investigation_dir,
+    }
+    namespace, separator, relative = key.partition("/")
+    if not separator or namespace not in roots or not relative:
+        raise ValueError(f"Invalid durable-state key: {key}")
+    root = roots[namespace].resolve()
+    target = (root / relative).resolve()
+    if root not in target.parents:
+        raise ValueError(f"Durable-state key escapes its configured root: {key}")
+    return target
+
+
+def persist_state_path(path: Path) -> None:
+    """Mirror one completed local artifact into PostgreSQL."""
+    if get_settings().persistence_mode == "local":
+        return
+    content = path.read_bytes()
+    key = _state_key(path)
+    with _session_factory()() as session:
+        record = session.get(DurableObject, key) or DurableObject(key=key)
+        record.content = content
+        record.sha256 = hashlib.sha256(content).hexdigest()
+        session.add(record)
+        session.commit()
+
+
+def delete_state_path(path: Path) -> None:
+    if get_settings().persistence_mode == "local":
+        return
+    with _session_factory()() as session:
+        session.execute(delete(DurableObject).where(DurableObject.key == _state_key(path)))
+        session.commit()
+
+
+def restore_state_objects() -> int:
+    """Restore PostgreSQL objects before the application reads local snapshots."""
+    if get_settings().persistence_mode == "local":
+        return 0
+    restored = 0
+    with _session_factory()() as session:
+        rows = session.query(DurableObject).order_by(DurableObject.key).all()
+        for row in rows:
+            content = bytes(row.content)
+            if hashlib.sha256(content).hexdigest() != row.sha256:
+                raise RuntimeError(f"Durable-state digest mismatch: {row.key}")
+            target = _path_for_state_key(row.key)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_name(f".{target.name}.restore.tmp")
+            temporary.write_bytes(content)
+            temporary.replace(target)
+            restored += 1
+    return restored
+
+
+def durable_object_count() -> int:
+    with _session_factory()() as session:
+        return int(session.query(DurableObject).count())
 
 
 def persist_investigation(entry: dict[str, Any], graph: GraphPayload) -> None:
-    repository = Neo4jGraphRepository()
-    try:
-        repository.replace_graph(graph, entry["id"])
-    finally:
-        repository.close()
+    if get_settings().persistence_mode == "hybrid":
+        repository = Neo4jGraphRepository()
+        try:
+            repository.replace_graph(graph, entry["id"])
+        finally:
+            repository.close()
     with _session_factory()() as session:
         record = session.get(Investigation, entry["id"]) or Investigation(id=entry["id"])
         record.name = entry["name"]
@@ -203,12 +311,13 @@ def set_persisted_active(investigation_id: str) -> None:
 
 
 def delete_persisted_investigation(investigation_id: str) -> None:
-    repository = Neo4jGraphRepository()
-    try:
-        with repository.driver.session() as neo_session:
-            neo_session.run("MATCH (e:Entity {investigation_id: $investigation_id}) DETACH DELETE e", investigation_id=investigation_id).consume()
-    finally:
-        repository.close()
+    if get_settings().persistence_mode == "hybrid":
+        repository = Neo4jGraphRepository()
+        try:
+            with repository.driver.session() as neo_session:
+                neo_session.run("MATCH (e:Entity {investigation_id: $investigation_id}) DETACH DELETE e", investigation_id=investigation_id).consume()
+        finally:
+            repository.close()
     with _session_factory()() as session:
         record = session.get(Investigation, investigation_id)
         if record:
@@ -219,13 +328,16 @@ def delete_persisted_investigation(investigation_id: str) -> None:
 def persistence_health() -> dict[str, bool]:
     with _session_factory()() as session:
         session.execute(text("SELECT 1"))
-    repository = Neo4jGraphRepository()
-    try:
-        with repository.driver.session() as neo_session:
-            neo_session.run("RETURN 1 AS ok").consume()
-    finally:
-        repository.close()
-    return {"postgresql": True, "neo4j": True}
+    result = {"postgresql": True}
+    if get_settings().persistence_mode == "hybrid":
+        repository = Neo4jGraphRepository()
+        try:
+            with repository.driver.session() as neo_session:
+                neo_session.run("RETURN 1 AS ok").consume()
+        finally:
+            repository.close()
+        result["neo4j"] = True
+    return result
 
 
 def persist_upload(upload: UploadRecord, actor_email: str, actor_role: str = "analyst") -> None:

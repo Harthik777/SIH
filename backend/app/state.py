@@ -240,14 +240,15 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
                 },
                 actor=state.requested_by,
             )
+            persistence = "in PostgreSQL-backed durable storage" if get_settings().persistence_mode != "local" else "as an atomic local snapshot"
             state.logs.append(
-                f"Investigation snapshot {investigation['id']} stored locally"
+                f"Investigation snapshot {investigation['id']} stored {persistence}"
                 + (" and activated." if investigation["active"] else ".")
             )
         state.status = "complete"
         upload.status = "complete"
         upload.records = int(profile["records"])
-        if get_settings().persistence_mode == "hybrid":
+        if get_settings().persistence_mode != "local":
             from .database import update_persisted_upload
 
             update_persisted_upload(upload)
@@ -258,7 +259,7 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
         state.status = "failed"
         state.error = f"{type(exc).__name__}: {exc}"
         upload.status = "failed"
-        if get_settings().persistence_mode == "hybrid":
+        if get_settings().persistence_mode != "local":
             from .database import update_persisted_upload
 
             update_persisted_upload(upload)
