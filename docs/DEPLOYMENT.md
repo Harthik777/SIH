@@ -4,7 +4,7 @@ Sentinel ships as one Docker web service: the first stage builds the React appli
 
 ## Public competition edition (Render)
 
-The repository includes `render.yaml` for a free Singapore-region Docker web service. The public configuration sets `SENTINEL_PUBLIC_DEMO=true`, which keeps every analysis screen available while rejecting arbitrary uploads and disabling credential login. All bundled evidence is synthetic.
+The repository includes `render.yaml` for a free Singapore-region Docker web service. The public configuration sets `SENTINEL_PUBLIC_DEMO=true`, which keeps every analysis screen available while rejecting arbitrary uploads and disabling credential login. It also enables the optional OpenTimestamps adapter for audit-head checkpoints. All bundled evidence is synthetic.
 
 1. Push the repository to GitHub.
 2. Open Render → **New → Blueprint** and connect `Harthik777/SIH`.
@@ -12,7 +12,9 @@ The repository includes `render.yaml` for a free Singapore-region Docker web ser
 4. Wait for `/api/health` to pass, then open the assigned `onrender.com` URL.
 5. Test `/?section=fusion&stage=1` and `/api/system/readiness`.
 
-Render's free web service is appropriate for competition judging, but it sleeps after inactivity and uses an ephemeral filesystem. The bundled investigation is rebuilt after restart; new audit events and demo decisions are not durable on the free tier. Do not upload real evidence to a public competition deployment.
+Render's free web service is appropriate for competition judging, but it sleeps after inactivity and uses an ephemeral filesystem. The bundled investigation is rebuilt after restart; new audit events, demo decisions, checkpoints and proofs are not durable on the free tier. Download the proof bundle immediately after submission. Public instances permit at most three timestamp submission attempts to prevent calendar abuse. Do not upload real evidence to a public competition deployment.
+
+OpenTimestamps calendar acceptance is initially shown as **calendar pending**. Bitcoin aggregation commonly takes hours; use **Check confirmation** later to upgrade the proof. The UI reports **Bitcoin confirmed** only after the upgraded proof matches a Bitcoin block header from the configured Esplora service.
 
 ## Immediate no-account preview
 
@@ -57,5 +59,7 @@ powershell -ExecutionPolicy Bypass -File scripts/backup_state.ps1
 ```
 
 Operational endpoints are `/api/health/live`, `/api/health/ready`, `/api/system/metrics`, and Prometheus-compatible `/metrics`. This pilot includes text-content guards and rate limits, but real agency evidence still requires approved malware scanning, encryption/key management, retention controls, identity federation, penetration testing, and formal accreditation.
+
+The private `.env` enables hybrid connectivity and OpenTimestamps by default. Set `SENTINEL_AUDIT_ANCHOR_MODE=disabled` or `SENTINEL_CONNECTIVITY_MODE=offline` for an air-gapped deployment. Online failure never blocks the evidence pipeline. Checkpoint submission and refresh are supervisor-only; only a nonce-blinded commitment is sent to the configured calendars. For the strongest independent verification, retain the downloaded files and verify them using an agency-operated Bitcoin Core node.
 
 The release workflow has a separate `hybrid-persistence` job that boots actual PostgreSQL and Neo4j service containers. It round-trips two investigations whose local entity IDs deliberately collide and verifies they remain isolated, including relationship-level evidence hashes. This continuously validates the private adapters even when the development laptop does not have Docker installed.

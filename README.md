@@ -2,7 +2,7 @@
 
 Sentinel is a full-stack investigation workspace that turns FIR narratives and structured crime records into an ontology-aligned knowledge graph. It combines a fast investigator-facing interface with a FastAPI service for ingestion, graph exploration, analytics, anomaly review, explanations, and export.
 
-The September 2026 build is an offline-first investigative pilot—not a static prototype—that also deploys as one full-stack website. It requires no paid AI API, fingerprints every evidence artifact, separates observations from hypotheses, protects survivor identities, and keeps a human analyst in control of every consequential interpretation.
+The September 2026 build is a hybrid online/offline investigative pilot—not a static prototype—that also deploys as one full-stack website. Core analysis requires no paid AI API or internet connection; optional online adapters add external verification without becoming evidence sources. Sentinel fingerprints every evidence artifact, separates observations from hypotheses, protects survivor identities, and keeps a human analyst in control of every consequential interpretation.
 
 The repository opens with **Operation Suraksha**, a clearly labelled fictional Bengaluru-area exercise built to prove multi-source fusion safely:
 
@@ -84,7 +84,8 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Temporal graph emergence: day-by-day reconstruction of evidence, entities, relationships, channels, and newly detectable patterns
 - Protected-person privacy mode: separate entity type, masked default, zero criminal-risk score, ML/ranking exclusion, reasoned ephemeral reveal, and audit receipt
 - Append-only SHA-256 audit chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and demo resets
-- Repeatable demonstration controls with stage-one start, safe reset, offline readiness, and integrity verification
+- Optional OpenTimestamps/Bitcoin audit-head checkpoints with nonce blinding, downloadable checkpoint + `.ots` proof, pending/confirmed state separation, and independent-header verification
+- Repeatable demonstration controls with stage-one start, safe reset, hybrid readiness, and integrity verification
 - Reproducible 10k/100k synthetic scale benchmark with build time, throughput, Python allocation peak, search latency, and path latency
 - Interactive Cytoscape knowledge graph with a readable two-hop focused view, full-network toggle, contextual search, type filters, layouts, zoom, and entity dossiers
 - Source-derived timeline and police-beat concentration views with non-GPS proxy coordinates labelled explicitly
@@ -142,7 +143,7 @@ python backend/scripts/train_graphsage.py --epochs 200 --seed 1
 
 ## Evidence integrity and responsible analysis
 
-`/api/provenance/manifest` creates a local chain-of-custody manifest for the dataset, FIR corpus, ontology, model graph, training notebook, reproduced checkpoint, and supplied output. Each entry includes its complete SHA-256 digest, byte size, modification time, role, and a [W3C PROV-O](https://www.w3.org/TR/prov-o/) compatible type. Separately, `/api/audit/verify` validates the append-only action chain by recomputing every content hash and previous-hash link. [`docs/LEDGER_DECISION.md`](docs/LEDGER_DECISION.md) documents why a blockchain would add no security benefit to the current single-authority, offline threat model and defines the conditions under which an external immutable anchor or consortium ledger would become justified.
+`/api/provenance/manifest` creates a local chain-of-custody manifest for the dataset, FIR corpus, ontology, model graph, training notebook, reproduced checkpoint, and supplied output. Each entry includes its complete SHA-256 digest, byte size, modification time, role, and a [W3C PROV-O](https://www.w3.org/TR/prov-o/) compatible type. Separately, `/api/audit/verify` validates the append-only action chain by recomputing every content hash and previous-hash link. The optional `/api/audit/anchors` workflow submits only a nonce-blinded checkpoint commitment to OpenTimestamps calendars and can later verify the upgraded proof against a Bitcoin block header. [`docs/LEDGER_DECISION.md`](docs/LEDGER_DECISION.md) documents the threat model, privacy boundary, proof states, and exact claim limit.
 
 The platform maintains explicit epistemic boundaries:
 

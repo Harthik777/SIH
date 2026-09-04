@@ -9,6 +9,7 @@ import math
 import re
 import os
 import time
+import zipfile
 from collections import Counter, defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -21,12 +22,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from .audit_anchor import AnchorDisabledError, AnchorError, AnchorLimitError, anchor_service_status, checkpoint_bytes, list_audit_anchors, prepare_audit_anchor, proof_bytes, refresh_audit_anchor
 from .audit_log import append_audit_event, audit_entries, verify_audit_chain
 from .config import get_settings
 from .graphsage import analyze_active_graph, link_prediction_summary, load_supplied_link_predictions, model_status
 from .intelligence import data_quality, investigation_briefing, provenance_manifest, transparent_link_candidates
 from .investigation_store import activate_investigation, active_investigation, delete_investigation, get_active_graph, list_investigations
-from .models import ConfigUpdate, GraphPayload, LoginRequest, PipelineRequest, ProtectedRevealRequest, ResolutionDecisionRequest, SearchRequest, UploadRecord
+from .models import AuditAnchorRequest, ConfigUpdate, GraphPayload, LoginRequest, PipelineRequest, ProtectedRevealRequest, ResolutionDecisionRequest, SearchRequest, UploadRecord
 from .network_intelligence import centrality as calculate_centrality
 from .network_intelligence import degree_distribution, generated_alerts, locations as active_locations
 from .network_intelligence import risk_trend, structure_metrics, timeline as active_timeline
@@ -56,6 +58,7 @@ async def lifespan(_: FastAPI):
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     settings.investigation_dir.mkdir(parents=True, exist_ok=True)
     settings.audit_path.parent.mkdir(parents=True, exist_ok=True)
+    settings.audit_anchor_dir.mkdir(parents=True, exist_ok=True)
     if settings.auth_mode == "required" and not settings.production_secret_configured:
         raise RuntimeError("SENTINEL_SECRET_KEY must contain at least 32 non-default characters when authentication is required")
     if settings.auth_mode == "required" and not settings.private_credentials_configured:
@@ -162,7 +165,7 @@ def node_or_404(node_id: str):
 @app.get("/api/health", tags=["system"])
 def health():
     payload = graph()
-    return {"status": "ok", "environment": settings.environment, "public_demo": settings.public_demo, "auth_mode": settings.auth_mode, "security_mode": "configured" if settings.production_secret_configured else "development-secret", "entities": len(payload.nodes), "relationships": len(payload.edges)}
+    return {"status": "ok", "environment": settings.environment, "connectivity_mode": settings.connectivity_mode, "public_demo": settings.public_demo, "auth_mode": settings.auth_mode, "security_mode": "configured" if settings.production_secret_configured else "development-secret", "entities": len(payload.nodes), "relationships": len(payload.edges)}
 
 
 @app.get("/api/health/live", tags=["system"])
@@ -356,6 +359,99 @@ def get_audit_entries(principal: Annotated[Principal, Depends(require_roles("ana
 @app.get("/api/audit/verify", tags=["tamper-evident audit"])
 def verify_audit():
     return verify_audit_chain()
+
+
+@app.get("/api/audit/anchors", tags=["external audit witness"])
+def audit_anchors():
+    return {"items": list_audit_anchors(), "service": anchor_service_status()}
+
+
+@app.post("/api/audit/anchors", tags=["external audit witness"])
+def create_audit_anchor(request: AuditAnchorRequest, principal: Annotated[Principal, Depends(require_roles("supervisor"))]):
+    try:
+        record = prepare_audit_anchor(principal.email, submit=request.submit)
+    except AnchorDisabledError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AnchorLimitError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except AnchorError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    append_audit_event(
+        "audit.checkpoint.submit" if request.submit else "audit.checkpoint.prepare",
+        record["id"],
+        {
+            "checkpointed_head": record["audit_head"],
+            "checkpoint_sha256": record["checkpoint_sha256"],
+            "status": record["status"],
+            "calendar_commitment": record.get("calendar_commitment"),
+        },
+        actor=principal.email,
+    )
+    return record
+
+
+@app.post("/api/audit/anchors/{anchor_id}/refresh", tags=["external audit witness"])
+def refresh_anchor(anchor_id: str, principal: Annotated[Principal, Depends(require_roles("supervisor"))]):
+    try:
+        record = refresh_audit_anchor(anchor_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Audit checkpoint not found") from exc
+    except AnchorDisabledError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AnchorError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    append_audit_event(
+        "audit.checkpoint.refresh",
+        anchor_id,
+        {"checkpointed_head": record["audit_head"], "status": record["status"], "bitcoin": record.get("bitcoin")},
+        actor=principal.email,
+    )
+    return record
+
+
+@app.get("/api/audit/anchors/{anchor_id}/proof", tags=["external audit witness"])
+def download_anchor_proof(anchor_id: str):
+    try:
+        payload = proof_bytes(anchor_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="OpenTimestamps proof is not available") from exc
+    return Response(
+        content=payload,
+        media_type="application/vnd.opentimestamps.ots",
+        headers={"Content-Disposition": f'attachment; filename="{anchor_id}.checkpoint.json.ots"'},
+    )
+
+
+@app.get("/api/audit/anchors/{anchor_id}/checkpoint", tags=["external audit witness"])
+def download_anchor_checkpoint(anchor_id: str):
+    try:
+        payload = checkpoint_bytes(anchor_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Audit checkpoint is not available") from exc
+    return Response(
+        content=payload,
+        media_type="application/json",
+        headers={"Content-Disposition": f'attachment; filename="{anchor_id}.checkpoint.json"'},
+    )
+
+
+@app.get("/api/audit/anchors/{anchor_id}/bundle", tags=["external audit witness"])
+def download_anchor_bundle(anchor_id: str):
+    try:
+        checkpoint = checkpoint_bytes(anchor_id)
+        proof = proof_bytes(anchor_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Complete timestamp proof bundle is not available") from exc
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(f"{anchor_id}.checkpoint.json", checkpoint)
+        archive.writestr(f"{anchor_id}.checkpoint.json.ots", proof)
+        archive.writestr("VERIFY.txt", "Keep both files together. Install the official opentimestamps-client, then run: ots verify <checkpoint.json.ots>\n")
+    return Response(
+        content=output.getvalue(),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{anchor_id}.proof-bundle.zip"'},
+    )
 
 
 @app.get("/api/system/readiness", tags=["system"])

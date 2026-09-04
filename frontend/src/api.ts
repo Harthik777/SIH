@@ -1,5 +1,5 @@
 import { graphData } from './data/mockData'
-import type { AlertItem, AnalyticsDistribution, AuditVerification, AuthUser, CentralityResult, ConnectionPath, CounterfactualResult, FusionAssurance, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, ModelEvaluation, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TemporalEmergence, TimelineEvent, UploadRecord } from './types'
+import type { AlertItem, AnalyticsDistribution, AuditAnchors, AuditAnchorRecord, AuditVerification, AuthUser, CentralityResult, ConnectionPath, CounterfactualResult, FusionAssurance, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, ModelEvaluation, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TemporalEmergence, TimelineEvent, UploadRecord } from './types'
 
 const TOKEN_KEY = 'sentinel-access-token'
 
@@ -176,6 +176,32 @@ export const api = {
 
   async getAuditVerification(): Promise<AuditVerification> {
     return json<AuditVerification>('/api/audit/verify')
+  },
+
+  async getAuditAnchors(): Promise<AuditAnchors> {
+    return json<AuditAnchors>('/api/audit/anchors')
+  },
+
+  async createAuditAnchor(submit: boolean): Promise<AuditAnchorRecord> {
+    return json<AuditAnchorRecord>('/api/audit/anchors', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ submit }),
+    })
+  },
+
+  async refreshAuditAnchor(id: string): Promise<AuditAnchorRecord> {
+    return json<AuditAnchorRecord>(`/api/audit/anchors/${encodeURIComponent(id)}/refresh`, { method: 'POST' })
+  },
+
+  async downloadAuditAnchor(id: string, proof = true): Promise<void> {
+    const suffix = proof ? 'proof' : 'checkpoint'
+    const extension = proof ? 'checkpoint.json.ots' : 'checkpoint.json'
+    return this.download(`/api/audit/anchors/${encodeURIComponent(id)}/${suffix}`, `${id}.${extension}`)
+  },
+
+  async downloadAuditAnchorBundle(id: string): Promise<void> {
+    return this.download(`/api/audit/anchors/${encodeURIComponent(id)}/bundle`, `${id}.proof-bundle.zip`)
   },
 
   async getReadiness(): Promise<SystemReadiness> {

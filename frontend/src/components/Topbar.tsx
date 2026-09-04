@@ -49,7 +49,7 @@ export function Topbar({ theme, onTheme, nodes, onSelectNode, onMenu, onNotifica
         <kbd><Command size={11} /> K</kbd>
       </div>
       <div className="top-actions">
-        <div className="sync-state"><i /> LOCAL</div>
+        <div className="sync-state" title="Local-first analysis with optional online verification"><i /> HYBRID</div>
         <button className="icon-button" onClick={onTheme} aria-label="Toggle theme">
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>

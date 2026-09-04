@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Activity, ArrowRight, Check, CheckCircle2, Database, Eye, Fingerprint, GitMerge, KeyRound, Layers3, LockKeyhole, Play, Radio, RefreshCcw, Route, ScanSearch, ShieldCheck, TriangleAlert, X } from 'lucide-react'
+import { Activity, ArrowRight, Check, CheckCircle2, Clock3, Database, Download, Eye, Fingerprint, GitMerge, Globe2, KeyRound, Layers3, LockKeyhole, Play, Radio, RefreshCcw, Route, ScanSearch, ShieldCheck, TriangleAlert, X } from 'lucide-react'
 import { api } from '../api'
-import type { AuditVerification, FusionAssurance, IdentityCandidate, ProtectedProfile, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TemporalEmergence } from '../types'
+import type { AuditAnchors, AuditVerification, FusionAssurance, IdentityCandidate, ProtectedProfile, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TemporalEmergence } from '../types'
 
 const shortReceipt = (value?: string | null) => value ? `${value.slice(0, 12)}…${value.slice(-8)}` : 'pending'
 
@@ -20,6 +20,7 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
   const [revealReason, setRevealReason] = useState('Verify protected contact details for authorized synthetic case review')
   const [authorizationReference, setAuthorizationReference] = useState('DEMO-AUTH-001')
   const [audit, setAudit] = useState<AuditVerification | null>(null)
+  const [anchors, setAnchors] = useState<AuditAnchors | null>(null)
   const [readiness, setReadiness] = useState<SystemReadiness | null>(null)
   const [benchmark, setBenchmark] = useState<ScaleBenchmark | null>(null)
   const [fusionAssurance, setFusionAssurance] = useState<FusionAssurance | null>(null)
@@ -27,12 +28,12 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
 
   const load = async () => {
     try {
-      const [nextReplay, nextEvaluation, nextCandidates, nextProtected, nextAudit, nextReadiness, nextBenchmark, nextFusion, nextEmergence] = await Promise.all([
+      const [nextReplay, nextEvaluation, nextCandidates, nextProtected, nextAudit, nextAnchors, nextReadiness, nextBenchmark, nextFusion, nextEmergence] = await Promise.all([
         api.getSurakshaReplay(), api.getSurakshaEvaluation(), api.getIdentityCandidates(), api.getProtectedPeople(),
-        api.getAuditVerification(), api.getReadiness(), api.getScaleBenchmark().catch(() => null), api.getSurakshaFusionAssurance(), api.getSurakshaEmergence(),
+        api.getAuditVerification(), api.getAuditAnchors(), api.getReadiness(), api.getScaleBenchmark().catch(() => null), api.getSurakshaFusionAssurance(), api.getSurakshaEmergence(),
       ])
       setReplay(nextReplay); setEvaluation(nextEvaluation); setCandidates(nextCandidates); setProtectedPeople(nextProtected)
-      setAudit(nextAudit); setReadiness(nextReadiness); setBenchmark(nextBenchmark); setFusionAssurance(nextFusion); setEmergence(nextEmergence); setLoadError('')
+      setAudit(nextAudit); setAnchors(nextAnchors); setReadiness(nextReadiness); setBenchmark(nextBenchmark); setFusionAssurance(nextFusion); setEmergence(nextEmergence); setLoadError('')
     } catch {
       setLoadError('The local evidence service is unavailable. Start the backend and retry.')
     }
@@ -111,6 +112,41 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
     }
   }
 
+  const checkpointAudit = async () => {
+    setBusy(true)
+    try {
+      const submit = Boolean(anchors?.service.submission_enabled)
+      const record = await api.createAuditAnchor(submit)
+      const [nextAudit, nextAnchors, nextReadiness] = await Promise.all([api.getAuditVerification(), api.getAuditAnchors(), api.getReadiness()])
+      setAudit(nextAudit); setAnchors(nextAnchors); setReadiness(nextReadiness)
+      setMessage(record.status === 'calendar-pending'
+        ? 'Blinded audit checkpoint accepted by timestamp calendars; Bitcoin confirmation is still pending.'
+        : 'Audit checkpoint prepared locally; no blockchain claim has been made.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Audit checkpoint could not be created.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const refreshCheckpoint = async () => {
+    const latest = anchors?.service.latest
+    if (!latest) return
+    setBusy(true)
+    try {
+      const record = await api.refreshAuditAnchor(latest.id)
+      const [nextAudit, nextAnchors] = await Promise.all([api.getAuditVerification(), api.getAuditAnchors()])
+      setAudit(nextAudit); setAnchors(nextAnchors)
+      setMessage(record.status === 'bitcoin-confirmed'
+        ? `Bitcoin checkpoint confirmed at block ${record.bitcoin?.height}.`
+        : 'Checkpoint refreshed; calendar aggregation is still pending.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Checkpoint refresh failed.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const current = replay?.steps.find((step) => step.order === selectedStep) ?? replay?.steps[0]
   const candidate = candidates[0]
   const summary = evaluation?.summary
@@ -118,7 +154,7 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
   return (
     <div className={`standard-page fusion-page ${privacyFocus ? 'focus-privacy' : ''}`}>
       <div className="page-heading fusion-heading">
-        <div><span className="eyebrow">FLAGSHIP MULTI-SOURCE EXERCISE</span><h1>Operation Suraksha</h1><p>Watch disconnected evidence become a challengeable investigation graph—without cloud services or fabricated certainty.</p></div>
+        <div><span className="eyebrow">FLAGSHIP MULTI-SOURCE EXERCISE</span><h1>Operation Suraksha</h1><p>Watch disconnected evidence become a challengeable investigation graph—with optional online verification and no fabricated certainty.</p></div>
         <div className="fusion-heading-actions"><span className="synthetic-pill"><ShieldCheck size={13}/> SYNTHETIC · SAFE DEMO</span><button className="secondary-button" disabled={busy} onClick={startGuidedDemo}><Play size={14}/> Guided demo</button><button className="secondary-button" disabled={busy} onClick={() => void resetDemo()}><RefreshCcw size={14}/> Reset</button>{activeId !== 'operation-suraksha' ? <button className="primary-button" disabled={busy} onClick={activate}><Play size={14}/>{busy ? 'Activating…' : 'Activate case'}</button> : <span className="active-case-pill"><Check size={13}/> ACTIVE INVESTIGATION</span>}</div>
       </div>
 
@@ -193,15 +229,22 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
         </section>
 
         <section className="panel assurance-control-panel">
-          <div className="panel-header"><div><span className="eyebrow">OFFLINE & INTEGRITY READINESS</span><h2>{readiness?.ready ? 'Ready for guided judging' : 'Readiness checks pending'}</h2></div>{readiness?.ready ? <CheckCircle2 className="pass-icon" size={19}/> : <TriangleAlert size={19}/>}</div>
-          <div className="readiness-summary"><div><small>OFFLINE</small><strong>{readiness?.offline_capable ? 'YES' : '—'}</strong></div><div><small>AUDIT CHAIN</small><strong>{audit?.valid ? 'VALID' : 'CHECK'}</strong></div><div><small>CHAINED EVENTS</small><strong>{audit?.entries ?? '—'}</strong></div><div><small>PAID APIS</small><strong>{readiness?.external_services_required ? 'REQUIRED' : 'NONE'}</strong></div></div>
-          <div className="readiness-checks">{readiness?.checks.map((check) => <span key={check.id} className={check.passed ? 'passed' : 'failed'}>{check.passed ? <Check size={12}/> : <X size={12}/>}<strong>{check.label}</strong><small>{check.detail}</small></span>)}</div>
+          <div className="panel-header"><div><span className="eyebrow">HYBRID & INTEGRITY READINESS</span><h2>{readiness?.ready ? 'Ready for guided judging' : 'Readiness checks pending'}</h2></div>{readiness?.ready ? <CheckCircle2 className="pass-icon" size={19}/> : <TriangleAlert size={19}/>}</div>
+          <div className="readiness-summary"><div><small>CORE MODE</small><strong>{readiness?.online_capable && readiness?.offline_capable ? 'HYBRID' : 'OFFLINE'}</strong></div><div><small>AUDIT CHAIN</small><strong>{audit?.valid ? 'VALID' : 'CHECK'}</strong></div><div><small>CHAINED EVENTS</small><strong>{audit?.entries ?? '—'}</strong></div><div><small>EXTERNAL WITNESS</small><strong>{anchors?.service.submission_enabled ? 'READY' : 'OPTIONAL'}</strong></div></div>
+          <div className="readiness-checks">{readiness?.checks.map((check) => <span key={check.id} className={check.passed ? 'passed' : check.required ? 'failed' : 'optional'}>{check.passed ? <Check size={12}/> : check.required ? <X size={12}/> : <Clock3 size={12}/>}<strong>{check.label}</strong><small>{check.detail}</small></span>)}</div>
           {benchmark && <div className="benchmark-strip"><span><Database size={15}/><strong>SCALE PROOF</strong></span>{benchmark.runs.map((run) => <div key={run.records}><strong>{(run.records / 1000).toFixed(0)}K</strong><small>{run.graph_build_seconds}s build · {run.peak_python_memory_mib} MiB peak · {run.connection_path.p95_ms} ms path p95</small></div>)}</div>}
           <div className="audit-head"><Fingerprint size={13}/><span><small>SHA-256 CHAIN HEAD</small><code title={audit?.head}>{shortReceipt(audit?.head)}</code></span><button className="secondary-button" onClick={() => void load()}>Verify chain</button></div>
+          <div className="external-witness">
+            <div className="witness-heading"><Globe2 size={18}/><span><small>OPTIONAL EXTERNAL WITNESS</small><strong>Bitcoin timestamp via OpenTimestamps</strong></span><em className={anchors?.service.latest?.status ?? 'prepared'}>{(anchors?.service.latest?.status ?? 'not anchored').replaceAll('-', ' ')}</em></div>
+            <p>{anchors?.service.privacy_boundary ?? 'Only a nonce-blinded audit-head commitment leaves Sentinel; evidence and identities remain off-chain.'}</p>
+            {anchors?.service.latest && <div className="witness-receipt"><Clock3 size={13}/><span><small>CHECKPOINT {anchors.service.latest.id}</small><code title={anchors.service.latest.checkpoint_sha256}>{shortReceipt(anchors.service.latest.checkpoint_sha256)}</code></span>{anchors.service.latest.bitcoin && <b>BLOCK {anchors.service.latest.bitcoin.height}</b>}</div>}
+            <div className="witness-actions"><button className="primary-button" disabled={busy || !audit?.valid} onClick={() => void checkpointAudit()}><Globe2 size={14}/>{anchors?.service.submission_enabled ? 'Anchor current head' : 'Prepare checkpoint'}</button>{anchors?.service.latest?.proof_available && <button className="secondary-button" onClick={() => void api.downloadAuditAnchorBundle(anchors.service.latest!.id)}><Download size={14}/> Download proof bundle</button>}{anchors?.service.latest?.proof_available && anchors.service.latest.status !== 'bitcoin-confirmed' && <button className="secondary-button" disabled={busy} onClick={() => void refreshCheckpoint()}><RefreshCcw size={14}/> Check confirmation</button>}</div>
+            <small className="witness-boundary">{anchors?.service.confirmation_boundary}</small>
+          </div>
         </section>
       </div>
 
-      <section className="panel fusion-assurance"><div><Radio size={18}/><span><strong>NO LIVE COLLECTION</strong><small>All six channels are synthetic fixtures</small></span></div><div><Database size={18}/><span><strong>LOCAL PROCESSING</strong><small>No paid API or hosted database required</small></span></div><div><Fingerprint size={18}/><span><strong>REPRODUCIBLE</strong><small>Every replay stage carries a receipt</small></span></div><div><ShieldCheck size={18}/><span><strong>HUMAN AUTHORITY</strong><small>No automated identity or enforcement decision</small></span></div></section>
+      <section className="panel fusion-assurance"><div><Radio size={18}/><span><strong>NO LIVE COLLECTION</strong><small>All six channels are synthetic fixtures</small></span></div><div><Globe2 size={18}/><span><strong>NETWORK OPTIONAL</strong><small>Core analysis survives loss of internet</small></span></div><div><Fingerprint size={18}/><span><strong>EXTERNALLY WITNESSABLE</strong><small>Only blinded audit checkpoints go online</small></span></div><div><ShieldCheck size={18}/><span><strong>HUMAN AUTHORITY</strong><small>No automated identity or enforcement decision</small></span></div></section>
     </div>
   )
 }

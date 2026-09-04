@@ -18,6 +18,11 @@ services:
       SENTINEL_NEO4J_PASSWORD: sentinel-password
       SENTINEL_REDIS_URL: redis://redis:6379/0
       SENTINEL_PERSISTENCE_MODE: hybrid
+      SENTINEL_CONNECTIVITY_MODE: ${SENTINEL_CONNECTIVITY_MODE:-hybrid}
+      SENTINEL_AUDIT_ANCHOR_MODE: ${SENTINEL_AUDIT_ANCHOR_MODE:-opentimestamps}
+      SENTINEL_AUDIT_ANCHOR_DIR: /app/state/audit/anchors
+      SENTINEL_AUDIT_ANCHOR_CALENDARS: ${SENTINEL_AUDIT_ANCHOR_CALENDARS:-https://a.pool.opentimestamps.org,https://b.pool.opentimestamps.org}
+      SENTINEL_BITCOIN_HEADER_API: ${SENTINEL_BITCOIN_HEADER_API:-https://blockstream.info/api}
       SENTINEL_ALLOWED_ORIGINS: http://localhost:5173
       SENTINEL_AUTH_MODE: required
       SENTINEL_SECRET_KEY: ${SENTINEL_SECRET_KEY:?Set SENTINEL_SECRET_KEY in .env}

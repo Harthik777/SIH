@@ -23,9 +23,16 @@ class Settings(BaseSettings):
     neo4j_password: str = "sentinel-password"
     redis_url: str = "redis://localhost:6379/0"
     persistence_mode: Literal["local", "hybrid"] = "local"
+    connectivity_mode: Literal["offline", "hybrid"] = "hybrid"
     upload_dir: Path = Path(__file__).resolve().parent.parent / "data" / "uploads"
     investigation_dir: Path = Path(__file__).resolve().parent.parent / "data" / "investigations"
     audit_path: Path = Path(__file__).resolve().parent.parent / "data" / "investigations" / "audit_chain.jsonl"
+    audit_anchor_dir: Path = Path(__file__).resolve().parent.parent / "data" / "investigations" / "audit_anchors"
+    audit_anchor_mode: Literal["disabled", "opentimestamps"] = "disabled"
+    audit_anchor_calendars: str = "https://a.pool.opentimestamps.org,https://b.pool.opentimestamps.org"
+    audit_anchor_timeout_seconds: float = 5.0
+    audit_anchor_public_limit: int = 3
+    bitcoin_header_api: str = "https://blockstream.info/api"
     decisions_path: Path = Path(__file__).resolve().parent.parent / "data" / "investigations" / "suraksha_resolution_decisions.json"
     max_upload_mb: int = 500
     max_ingestion_records: int = 100_000
@@ -40,6 +47,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
+
+    @property
+    def anchor_calendars(self) -> list[str]:
+        return [url.strip().rstrip("/") for url in self.audit_anchor_calendars.split(",") if url.strip()]
 
     @property
     def production_secret_configured(self) -> bool:

@@ -398,6 +398,47 @@ export interface AuditVerification {
   scope_note: string
 }
 
+export interface AuditAnchorRecord {
+  id: string
+  created_at: string
+  created_by: string
+  status: 'prepared' | 'submission-failed' | 'calendar-pending' | 'bitcoin-attested' | 'bitcoin-confirmed'
+  provider: string
+  audit_head: string
+  audit_entries: number
+  checkpoint_sha256: string
+  calendar_commitment: string | null
+  calendars_accepted: string[]
+  proof_available: boolean
+  bitcoin: null | {
+    height: number
+    block_hash: string
+    attested_at: string
+    verification_method: string
+    full_node_note: string
+  }
+  last_error: string | null
+  scope_note: string
+}
+
+export interface AuditAnchorService {
+  connectivity_mode: 'offline' | 'hybrid'
+  online_capable: boolean
+  provider: string
+  submission_enabled: boolean
+  submitted_checkpoints: number
+  submission_attempts: number
+  public_submission_limit: number | null
+  latest: AuditAnchorRecord | null
+  privacy_boundary: string
+  confirmation_boundary: string
+}
+
+export interface AuditAnchors {
+  items: AuditAnchorRecord[]
+  service: AuditAnchorService
+}
+
 export interface ReadinessCheck {
   id: string
   label: string
@@ -409,11 +450,14 @@ export interface ReadinessCheck {
 export interface SystemReadiness {
   ready: boolean
   offline_capable: boolean
+  online_capable: boolean
+  connectivity_mode: 'offline' | 'hybrid'
   external_services_required: boolean
   public_demo: boolean
   active_investigation: { id: string; name: string }
   checks: ReadinessCheck[]
   audit: AuditVerification
+  anchoring: AuditAnchorService
   scope_note: string
 }
 

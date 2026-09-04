@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import audit_log, main as main_module, suraksha
+from app import audit_anchor, audit_log, main as main_module, suraksha
 from app.main import app
 from app.crime_pipeline import build_graph, load_crime_graph, parse_fir
 from app.graphsage import INPUT_FEATURES, analyze_graph, build_features
@@ -448,6 +448,36 @@ def test_audit_chain_detects_tampering(monkeypatch, tmp_path):
     verification = audit_log.verify_audit_chain()
     assert verification["valid"] is False
     assert any(error["reason"] == "content hash mismatch" for error in verification["errors"])
+
+
+def test_external_checkpoint_is_blinded_bounded_and_downloadable(monkeypatch, tmp_path):
+    monkeypatch.setattr(audit_log, "AUDIT_PATH", tmp_path / "audit_chain.jsonl")
+    monkeypatch.setattr(main_module.settings, "audit_anchor_dir", tmp_path / "anchors")
+    monkeypatch.setattr(main_module.settings, "connectivity_mode", "hybrid")
+    monkeypatch.setattr(main_module.settings, "audit_anchor_mode", "opentimestamps")
+    monkeypatch.setattr(main_module.settings, "public_demo", True)
+    monkeypatch.setattr(main_module.settings, "audit_anchor_public_limit", 1)
+
+    def fake_submit(checkpoint_path, proof_path, calendar_urls, timeout):
+        assert b"protected_person" not in checkpoint_path.read_bytes()
+        audit_anchor._atomic_write(proof_path, b"synthetic-ots-proof")
+        return "f" * 64, [calendar_urls[0]]
+
+    monkeypatch.setattr(audit_anchor, "_submit_proof", fake_submit)
+    audit_log.append_audit_event("synthetic.case.open", "operation-suraksha", actor="test-supervisor")
+
+    response = client.post("/api/audit/anchors", json={"submit": True})
+    assert response.status_code == 200
+    record = response.json()
+    assert record["status"] == "calendar-pending"
+    assert record["calendar_commitment"] == "f" * 64
+    assert record["audit_head"] != client.get("/api/audit/verify").json()["head"]
+    assert client.get(f"/api/audit/anchors/{record['id']}/proof").content == b"synthetic-ots-proof"
+    bundle = client.get(f"/api/audit/anchors/{record['id']}/bundle")
+    assert bundle.status_code == 200 and bundle.headers["content-type"] == "application/zip"
+    checkpoint = client.get(f"/api/audit/anchors/{record['id']}/checkpoint").json()
+    assert set(checkpoint) == {"schema", "created_at", "audit_method", "audit_entries", "audit_head"}
+    assert client.post("/api/audit/anchors", json={"submit": True}).status_code == 429
 
 
 def test_reset_restores_flagship_stage_and_clears_identity_decision(monkeypatch, tmp_path):

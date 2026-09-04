@@ -1,11 +1,11 @@
-# Clean-install and offline rehearsal
+# Clean-install and hybrid/offline rehearsal
 
 ## Required machine
 
 - Python 3.11+
 - Node.js 20+
 - 2 GB free RAM for the 500-record demonstration
-- Internet is needed once to install packages; normal runtime needs no external service or paid API
+- Internet is needed once to install packages; core runtime needs no external service or paid API
 
 ## Rehearsal
 
@@ -18,7 +18,8 @@
 7. Confirm 14/14 entities, 6/6 relations, five of five computed patterns, 100% edge provenance, hidden path `YES`, and false merges `0`.
 8. Confirm protected identities are masked and the risk policy says prohibited.
 9. Select **Verify chain** and confirm `VALID`.
-10. Turn off network access, refresh the app, repeat the replay, TRACE path, graph view, analytics, and PDF export.
+10. Select **Anchor current head** while online; confirm the state is `calendar pending`, not “confirmed”, and download the checkpoint plus `.ots` proof.
+11. Turn off network access, refresh the app, repeat the replay, TRACE path, graph view, analytics, and PDF export. Confirm only external checkpoint submission/refresh is unavailable.
 
 ## Automated release check
 
@@ -38,6 +39,7 @@ Expected result: backend and frontend tests, production build, dependency checks
 6. Create a test case, restart the containers, and confirm it remains in the investigation selector.
 7. Check `/api/health/ready` and `/metrics`.
 8. Run `scripts/backup_state.ps1` and retain the resulting hash-manifest archive outside the machine.
+9. Confirm checkpoint submission is supervisor-only, then retain its checkpoint JSON and `.ots` proof outside the machine.
 
 ## Judge-day reset
 

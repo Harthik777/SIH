@@ -2,11 +2,11 @@
 
 ## Deployment profiles
 
-| Profile | Purpose | Authentication | Evidence intake | Persistence |
-| --- | --- | --- | --- | --- |
-| Public Render | Competition evaluation | Synthetic demo identity | Disabled | Ephemeral runtime; bundled fixtures rebuild |
-| Local development | Trusted developer machine | Optional | Enabled | Atomic local files |
-| Private Docker | Single-machine investigative pilot | Required JWT; analyst/supervisor roles | Enabled | Docker volume + PostgreSQL + case-scoped Neo4j |
+| Profile | Purpose | Authentication | Evidence intake | Persistence | Connectivity |
+| --- | --- | --- | --- | --- | --- |
+| Public Render | Competition evaluation | Synthetic demo identity | Disabled | Ephemeral runtime; bundled fixtures rebuild | Hybrid; bounded OpenTimestamps demo |
+| Local development | Trusted developer machine | Optional | Enabled | Atomic local files | Hybrid-capable; anchoring disabled unless configured |
+| Private Docker | Single-machine investigative pilot | Required JWT; analyst/supervisor roles | Enabled | Docker volume + PostgreSQL + case-scoped Neo4j | Hybrid by default; offline mode supported |
 
 Never place real evidence in the public profile.
 
@@ -41,9 +41,11 @@ Protected-person reveal still requires a reason and authorization reference, and
 - `/metrics`: Prometheus-compatible counters and latency gauge.
 - Every HTTP response carries `X-Request-ID` and `X-Response-Time-Ms`.
 
-## Audit ledger choice
+## Audit ledger and external witness
 
-Sentinel uses an append-only SHA-256 hash chain because the current deployment has one accountable operator and must work offline on one machine. A blockchain would replicate the same data and consensus machinery without introducing an independent trust domain. Record the verified chain head outside the application host for stronger rewrite detection. See `docs/LEDGER_DECISION.md` for the threat model, limitations, and the exact trigger for a future external anchor or permissioned consortium ledger.
+Sentinel's authoritative action log is an append-only SHA-256 hash chain and remains fully usable offline. In hybrid mode, a supervisor can checkpoint the current chain head through OpenTimestamps. The adapter hashes a minimal checkpoint, adds a random nonce, hashes again, and sends only that opaque commitment to public calendars. No evidence, identity, protected-person data or event detail is placed on-chain.
+
+Calendar acceptance is not confirmation. The saved `.ots` proof must later be upgraded to a Bitcoin attestation and checked against a block header. The hosted Esplora check is convenient but not as trust-minimized as an independently operated Bitcoin Core node. Export both checkpoint and proof into approved durable custody. See `docs/LEDGER_DECISION.md` for the complete state model and claim boundary.
 
 ## Backup
 
@@ -54,7 +56,7 @@ PostgreSQL and Neo4j require their normal database-native backups in addition to
 ## Incident response minimum
 
 1. Isolate the host and preserve the state volume.
-2. Export and verify the audit chain; record its head hash separately.
+2. Export and verify the audit chain; preserve the most recent checkpoint JSON and `.ots` proof separately.
 3. Rotate signing and account secrets.
 4. Review request IDs and reverse-proxy logs around the incident window.
 5. Restore only from a verified archive and database backup.

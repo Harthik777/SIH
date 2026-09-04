@@ -17,6 +17,8 @@ try {
     python -c "from backend.app.suraksha import fusion_assurance; value=fusion_assurance()['summary']; assert value['patterns_recovered']==5 and value['edge_provenance_coverage']==100.0"
     python -c "import json, pathlib; value=json.loads(pathlib.Path('backend/benchmarks/model_evaluation.json').read_text()); stress=value['graphsage']['evidence_masking_stress_test']; assert value['schema_version']==2 and value['dataset']['suspects']==434 and value['graphsage']['reproduction_diagnostic']['checkpoint_selection_partition']['samples']==87 and 0 < stress['summary']['f1']['mean'] < 1 and stress['generalization_claim_allowed'] is False and value['leakage_audit']['status']=='fails-independent-generalization-criteria' and value['claim_assurance']['field_accuracy']=='not-established' and len(value['limitations'])>=6"
     python -c "from backend.app.readiness import system_readiness; assert system_readiness()['ready']"
+    python -c "from backend.app.audit_anchor import anchor_service_status; value=anchor_service_status(); assert value['online_capable'] and 'blinded commitment' in value['privacy_boundary']"
+    python -c "from opentimestamps.core.timestamp import DetachedTimestampFile; print('OpenTimestamps proof runtime available')"
     Write-Host "Sentinel release verification passed." -ForegroundColor Green
 } finally {
     Pop-Location

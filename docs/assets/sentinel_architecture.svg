@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
   <title id="title">Sentinel system architecture</title>
-  <desc id="desc">Evidence sources flow through guarded local ingestion and an ontology-aligned graph into explainable analytics and the investigator web interface. Role enforcement, protected-person privacy, durable persistence and a hash-chained audit trail span the system.</desc>
+  <desc id="desc">Evidence sources flow through guarded hybrid ingestion and an ontology-aligned graph into explainable analytics and the investigator web interface. Role enforcement, protected-person privacy, durable persistence, a hash-chained audit trail and optional Bitcoin timestamp checkpoints span the system.</desc>
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07110f"/><stop offset="1" stop-color="#10231e"/></linearGradient>
     <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity=".25"/></filter>
@@ -11,7 +11,7 @@
   </defs>
   <rect width="1280" height="720" fill="url(#bg)"/>
   <text x="54" y="58" class="k">SENTINEL / SIH 26189</text><text x="54" y="91" class="h" font-size="28">Privacy-first criminal network intelligence — one deployable web service</text>
-  <text x="54" y="116" class="t">Offline-capable · authenticated private pilot · synthetic public showcase · no paid API dependency</text>
+  <text x="54" y="116" class="t">Hybrid online/offline · authenticated private pilot · synthetic public showcase · no paid API dependency</text>
 
   <path class="line" d="M267 340H351"/><path class="line" d="M567 340H651"/><path class="line" d="M867 340H951"/>
   <path class="dash" d="M180 558V615H1085V558"/>
@@ -24,7 +24,7 @@
     <text x="20" y="284" class="t">CSV · JSON · TXT · XML</text><text x="20" y="307" class="small">Per-record + artifact SHA-256</text><text x="20" y="326" class="small">Durable evidence snapshot</text>
   </g>
 
-  <g transform="translate(351 164)"><rect class="box" width="216" height="352"/><text x="20" y="34" class="k">02 / FUSION</text><text x="20" y="64" class="h">Local processing</text>
+  <g transform="translate(351 164)"><rect class="box" width="216" height="352"/><text x="20" y="34" class="k">02 / FUSION</text><text x="20" y="64" class="h">Hybrid processing</text>
     <text x="20" y="102" class="t">Schema + source profiling</text><text x="20" y="130" class="t">Entity + relation extraction</text><text x="20" y="158" class="t">Temporal pattern detection</text><text x="20" y="186" class="t">Human-safe resolution</text>
     <rect class="privacy" x="20" y="217" width="176" height="77" rx="8"/><text x="34" y="242" class="k">PROTECTED PERSON</text><text x="34" y="263" class="small">Masked identity · risk = 0</text><text x="34" y="280" class="small">Excluded from ML ranking</text>
     <text x="20" y="326" class="small">FastAPI · JWT RBAC · request limits</text>
@@ -43,5 +43,5 @@
   </g>
 
   <g transform="translate(52 576)"><rect class="audit" width="1176" height="92" rx="13"/><text x="20" y="30" class="k" fill="#b7abff">CROSS-CUTTING ASSURANCE</text><text x="20" y="57" class="h">Proof-carrying evidence + append-only audit chain</text><text x="20" y="77" class="small">Record digests · provenance · human decisions · protected reveals · exports · reproducibility receipts</text>
-    <text x="840" y="38" class="k">PREVIOUS HASH → CURRENT HASH</text><text x="840" y="63" class="t">Role · actor · UTC timestamp · action · target</text></g>
+    <text x="810" y="31" class="k">AUDIT HEAD → BLINDED COMMITMENT</text><text x="810" y="53" class="t">OpenTimestamps calendars → Bitcoin block</text><text x="810" y="74" class="small">Evidence and identities remain off-chain</text></g>
 </svg>

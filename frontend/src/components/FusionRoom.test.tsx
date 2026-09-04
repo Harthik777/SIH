@@ -15,6 +15,11 @@ vi.mock('../api', () => ({
     getProtectedPeople: vi.fn(),
     revealProtectedPerson: vi.fn(),
     getAuditVerification: vi.fn(),
+    getAuditAnchors: vi.fn(),
+    createAuditAnchor: vi.fn(),
+    refreshAuditAnchor: vi.fn(),
+    downloadAuditAnchor: vi.fn(),
+    downloadAuditAnchorBundle: vi.fn(),
     getReadiness: vi.fn(),
     getScaleBenchmark: vi.fn(),
     resetSuraksha: vi.fn(),
@@ -86,7 +91,10 @@ describe('FusionRoom', () => {
     vi.mocked(api.decideIdentityCandidate).mockResolvedValue()
     vi.mocked(api.getProtectedPeople).mockResolvedValue([{ id: 'PP-S-001', graph_name: 'Protected Person S-01', name: 'N•••••• R••', phone: '+91-•••••••001', address: 'WITHHELD — Karnataka', status: 'masked', risk_scoring: 'prohibited', guardrail: 'Protected' }])
     vi.mocked(api.getAuditVerification).mockResolvedValue({ valid: true, entries: 2, head: 'a'.repeat(64), errors: [], method: 'sha256-chain-v1', scope_note: 'Local' })
-    vi.mocked(api.getReadiness).mockResolvedValue({ ready: true, offline_capable: true, external_services_required: false, public_demo: false, active_investigation: { id: 'operation-suraksha', name: 'Operation Suraksha' }, checks: [], audit: { valid: true, entries: 2, head: 'a'.repeat(64), errors: [], method: 'sha256-chain-v1', scope_note: 'Local' }, scope_note: 'Ready' })
+    const anchorService = { connectivity_mode: 'hybrid' as const, online_capable: true, provider: 'OpenTimestamps / Bitcoin', submission_enabled: true, submitted_checkpoints: 0, submission_attempts: 0, public_submission_limit: 3, latest: null, privacy_boundary: 'Only a blinded commitment leaves Sentinel.', confirmation_boundary: 'Calendar acceptance is pending until Bitcoin confirmation.' }
+    vi.mocked(api.getAuditAnchors).mockResolvedValue({ items: [], service: anchorService })
+    vi.mocked(api.createAuditAnchor).mockResolvedValue({ id: 'ots-checkpoint', created_at: '2026-09-05T00:00:00Z', created_by: 'supervisor', status: 'calendar-pending', provider: 'OpenTimestamps / Bitcoin', audit_head: 'a'.repeat(64), audit_entries: 2, checkpoint_sha256: 'b'.repeat(64), calendar_commitment: 'c'.repeat(64), calendars_accepted: ['https://a.pool.opentimestamps.org'], proof_available: true, bitcoin: null, last_error: null, scope_note: 'Pending' })
+    vi.mocked(api.getReadiness).mockResolvedValue({ ready: true, offline_capable: true, online_capable: true, connectivity_mode: 'hybrid', external_services_required: false, public_demo: false, active_investigation: { id: 'operation-suraksha', name: 'Operation Suraksha' }, checks: [], audit: { valid: true, entries: 2, head: 'a'.repeat(64), errors: [], method: 'sha256-chain-v1', scope_note: 'Local' }, anchoring: anchorService, scope_note: 'Ready' })
     vi.mocked(api.getScaleBenchmark).mockResolvedValue({ generated_at: '2026-09-04', classification: 'synthetic-performance-evaluation', runs: [], entity_resolution_safety: { false_merge_rate: 0, automatic_merge_precision: null, precision_note: 'Not applicable' } })
     vi.mocked(api.resetSuraksha).mockResolvedValue()
 
@@ -95,6 +103,10 @@ describe('FusionRoom', () => {
     expect(await screen.findByText('14')).toBeInTheDocument()
     expect(screen.getByText('Masked by default. Never scored.')).toBeInTheDocument()
     expect(screen.getByText('VALID')).toBeInTheDocument()
+    expect(screen.getByText('HYBRID')).toBeInTheDocument()
+    expect(screen.getByText('Bitcoin timestamp via OpenTimestamps')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /anchor current head/i }))
+    await waitFor(() => expect(api.createAuditAnchor).toHaveBeenCalledWith(true))
     expect(screen.getByText('Prevent the dangerous merge')).toBeInTheDocument()
     expect(screen.getByText('Circular fund movement')).toBeInTheDocument()
     expect(screen.getByText('100%')).toBeInTheDocument()

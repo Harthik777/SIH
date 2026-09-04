@@ -4,7 +4,7 @@
 **Organization:** Ministry of Home Affairs  
 **Department:** NCRB, Women Safety Division  
 **Build date:** 05 September 2026
-**Operating target:** free, offline-capable single-machine demonstration plus a synthetic-only public web edition
+**Operating target:** free hybrid online/offline single-machine pilot plus a synthetic-only public web edition
 
 ## Evaluation summary
 
@@ -36,6 +36,7 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 - Every evidence input receives a SHA-256 digest.
 - Every graph relationship carries its exact source record ID, source channel, observation time, and canonical SHA-256 record digest.
 - Investigation actions form an append-only SHA-256 chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and resets; `/api/audit/verify` detects content or linkage changes.
+- Optional OpenTimestamps anchoring sends only a nonce-blinded checkpoint commitment, preserves downloadable proofs, separates calendar-pending from Bitcoin-confirmed state, and leaves all evidence and identities off-chain.
 - API responses use no-store, no-sniff, frame-deny, no-referrer, and restrictive permissions headers.
 - The frontend deployment includes a Content Security Policy.
 - Private mode requires signed JWT sessions on non-health APIs; server-side analyst/supervisor permissions guard mutations and protected-person reveal.

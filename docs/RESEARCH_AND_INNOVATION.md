@@ -2,7 +2,7 @@
 
 **Assessment date:** 04 September 2026  
 **Scope:** SIH 26189 — AI-Powered Criminal Network Analysis System  
-**Constraint:** free, offline-capable, single-machine demonstration
+**Constraint:** free, hybrid online/offline, single-machine demonstration with no paid-service dependency
 
 ## Product thesis
 
@@ -17,6 +17,7 @@ This is implemented as **TRACE** (Transparent Relationship, Assumption, Corrobor
 5. **Reproducibility receipt:** canonical result payloads receive SHA-256 digests so reruns can be compared precisely.
 6. **Record-level provenance:** every relationship names its source channel, record identifier, observation time, and canonical record digest.
 7. **Claim-aware ML:** a machine-readable model passport separates a reproducible structural-proxy result from unestablished field accuracy.
+8. **Externally witnessed integrity:** nonce-blinded audit-head checkpoints can be timestamped through OpenTimestamps and Bitcoin without publishing evidence or personal data.
 
 The companion **Operation Suraksha Fusion Room** turns those principles into a judge-visible exercise: six synthetic evidence channels, a known hidden path, declared acceptance truth, and an ambiguous-name case that the system must refuse to auto-merge.
 
@@ -31,6 +32,7 @@ This design is inspired by work on inherently explainable temporal graph models 
 | [IBM AMLSim](https://github.com/IBM/AMLSim) | Multi-agent generation of synthetic banking transactions containing known laundering patterns | Recommended optional financial scenario generator; not silently bundled into the current evidence corpus |
 | [IBM AML-Data](https://github.com/IBM/AML-Data) | Labeled, fully synthetic transaction data representing legitimate and laundering behavior | Recommended optional benchmark for transaction-pattern evaluation. Repository code is Apache-2.0; the dataset is CDLA-Sharing-1.0 and must retain its license |
 | [Indic TrOCR](https://github.com/iitb-research-code/indic-trocr) | Apache-2.0 transformer OCR for handwritten documents in Indian languages | Strong optional extension for scanned FIR intake; it needs a separately tested model/runtime profile before being called integrated |
+| [OpenTimestamps client](https://github.com/opentimestamps/opentimestamps-client) | Standard timestamp proofs aggregate opaque commitments into Bitcoin; initial calendar receipts remain pending and can be upgraded later | Sentinel implements this as an optional audit-chain-head witness, with nonce blinding, explicit pending/confirmed states, and no evidence or personal data on-chain |
 
 The comparison is based on public repository documentation, not on claims that Sentinel has copied or absorbed those codebases.
 
@@ -41,6 +43,7 @@ The comparison is based on public repository documentation, not on claims that S
 - [Self-Exploring Language Models for Explainable Link Forecasting on Temporal Graphs](https://arxiv.org/abs/2509.00975) (2025) evaluates reasoning traces and hallucination effects alongside ranking quality. It strengthens Sentinel's choice to keep generated prose outside the evidence layer and make replay receipts deterministic.
 - [Towards Foundation Model on Temporal Knowledge Graph Reasoning](https://arxiv.org/abs/2506.06367) (2025) targets fully inductive transfer across unseen entities, relations, and timestamps. Sentinel does not claim that capability; active-investigation switching and schema-compatibility refusal are the honest local foundations for future cross-domain validation.
 - [Investigating the Robustness of Graph Neural Networks to Data Drift](https://ieeexplore.ieee.org/document/11172673/) (IEEE Access, 2025) reports degradation across temporal windows even when GraphSAGE is comparatively robust. Sentinel therefore exposes model provenance and schema compatibility instead of treating one validation score as permanent operational assurance.
+- [OpenTimestamps](https://opentimestamps.org/) defines a standard proof format and free public calendars for Bitcoin timestamp aggregation. [Blockstream Esplora](https://github.com/Blockstream/esplora/blob/master/API.md) documents the block-height and block-header endpoints used by the optional hosted verifier. A locally operated Bitcoin Core node remains the stronger trust-minimized verification path.
 
 ## Dataset strategy
 
@@ -56,7 +59,7 @@ Sentinel ships the user-supplied artifacts plus the explicitly fictional Operati
 
 ## Why the build remains free
 
-The evaluation path uses React, FastAPI, deterministic Python graph analysis, local JSON investigation snapshots, the supplied ontology, and CPU GraphSAGE inference. No paid API key, hosted LLM, managed database, or internet connection is required. Docker services are optional deployment adapters, not prerequisites for the one-machine demonstration.
+The evaluation path uses React, FastAPI, deterministic Python graph analysis, local JSON investigation snapshots, the supplied ontology, and CPU GraphSAGE inference. No paid API key, hosted LLM, or managed database is required. Internet access is optional: OpenTimestamps calendars and a Bitcoin-header endpoint strengthen audit witnessing when online, while core casework remains available offline. Docker services are deployment adapters, not prerequisites for the one-machine demonstration.
 
 ## Judge-facing novelty demonstration
 
@@ -67,6 +70,7 @@ The evaluation path uses React, FastAPI, deterministic Python graph analysis, lo
 5. Open **TRACE Lab** and show the exact stored-edge path from Subject A-17 to Coordinator C-04.
 6. Connect the proof back to the entity dossier, temporal motifs, and counterfactual checks.
 7. Switch to Operation City Shield or a newly ingested dataset to prove the workflow is active-graph-driven rather than a one-screen animation.
+8. In **Hybrid & integrity readiness**, anchor the current audit head, show the honest `calendar pending` state, and download the checkpoint/proof bundle.
 
 The key pitch is: **Sentinel does not merely produce an answer; it produces an answer that can be challenged.**
 

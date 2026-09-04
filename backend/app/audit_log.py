@@ -88,5 +88,5 @@ def verify_audit_chain() -> dict[str, Any]:
         "head": entries[-1]["hash"] if entries else GENESIS_HASH,
         "errors": errors,
         "method": "sha256-chain-v1",
-        "scope_note": "Local tamper-evidence, not a blockchain or a substitute for agency-grade immutable storage.",
+        "scope_note": "Local tamper-evidence. Optional OpenTimestamps checkpoints can externally witness a chain head without placing evidence or identities on-chain.",
     }

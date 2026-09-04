@@ -76,7 +76,10 @@ The core task is evidence linkage, not fluent text generation. A cloud LLM would
 They are real acceptance results against the declared synthetic Operation Suraksha ground truth: 14/14 entity checkpoints, 6/6 relation types, the intended hidden path recovered, and zero false merges. The 10k/100k numbers are measured on the documented machine. None are presented as accuracy on operational police data.
 
 **Does it require internet or paid APIs?**  
-No. Runtime processing, graph analytics, model inference, provenance, replay, and report generation run locally. The competition public URL hosts the same complete web app; the offline edition still works when internet access is unavailable.
+No paid API is required. Runtime processing, graph analytics, model inference, provenance, replay, and report generation run locally. Internet is optional: hybrid mode can submit a blinded audit-head checkpoint to free OpenTimestamps calendars and later verify its Bitcoin attestation. Loss of internet does not stop the investigation workflow.
+
+**Why add Bitcoin if the evidence stays local?**
+The blockchain is an external clock, not an evidence database. Sentinel submits only a nonce-blinded commitment to the current audit-chain checkpoint. A later Bitcoin proof makes rewriting history after that checkpoint detectable, while protected and investigative data remain off-chain. Calendar acceptance is shown as pending until a Bitcoin attestation is actually available.
 
 **Can it scale beyond one machine?**  
 The measured single-process harness built 100,000 synthetic records into 104,256 nodes and 400,000 edges in 80.838 seconds on the documented laptop. That proves bounded prototype scale, not national production scale. Included Neo4j, PostgreSQL, Redis, and Celery seams support the next deployment tier after security and policy approval.

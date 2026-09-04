@@ -44,7 +44,7 @@ export function Dashboard({ graph, alerts, selected, onSelect, investigationId, 
     <div className="dashboard-page">
       <div className="page-heading">
         <div><span className="eyebrow">COMMAND CENTER · EVIDENCE SNAPSHOT</span><h1>Investigation overview</h1><p>{investigationName} — Connected crime pattern analysis</p></div>
-        <div className="heading-actions"><span className="offline-badge"><i/> OFFLINE VERIFIED</span><button className="secondary-button" onClick={shareCase}>{shared ? <Check size={14}/> : <Share2 size={14}/>} {shared ? 'Copied' : 'Share case'}</button><button className="primary-button" onClick={openAnalysis}><ScanSearch size={15}/> Review analysis</button></div>
+        <div className="heading-actions"><span className="offline-badge"><i/> HYBRID READY</span><button className="secondary-button" onClick={shareCase}>{shared ? <Check size={14}/> : <Share2 size={14}/>} {shared ? 'Copied' : 'Share case'}</button><button className="primary-button" onClick={openAnalysis}><ScanSearch size={15}/> Review analysis</button></div>
       </div>
       <div className="stats-grid">
         <StatCard icon={Network} label="TOTAL ENTITIES" value={graph.nodes.length.toLocaleString()} delta={`${sourceRecords.toLocaleString()} source records`} chart={[3,4,4,5,6,7,9]} />

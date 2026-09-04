@@ -15,6 +15,12 @@ services:
         value: "true"
       - key: SENTINEL_AUTH_MODE
         value: optional
+      - key: SENTINEL_CONNECTIVITY_MODE
+        value: hybrid
+      - key: SENTINEL_AUDIT_ANCHOR_MODE
+        value: opentimestamps
+      - key: SENTINEL_AUDIT_ANCHOR_PUBLIC_LIMIT
+        value: "3"
       - key: SENTINEL_RATE_LIMIT_PER_MINUTE
         value: "240"
       - key: SENTINEL_ALLOWED_ORIGINS

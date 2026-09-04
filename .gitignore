@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 .env
 .tools/
+.tmp-anchor-ui/
 backend/data/uploads/*
 !backend/data/uploads/.gitkeep
 backend/data/investigations/*

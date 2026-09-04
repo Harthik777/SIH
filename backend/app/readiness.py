@@ -1,4 +1,4 @@
-"""Offline release-readiness checks exposed to the flagship demo."""
+"""Hybrid release-readiness checks exposed to the flagship demo."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .audit_log import AUDIT_PATH, verify_audit_chain
+from .audit_anchor import anchor_service_status
 from .graphsage import CHECKPOINT_PATH, NOTEBOOK_PATH
 from .protected_persons import PROTECTED_PATH
 from .suraksha import GROUND_TRUTH_PATH, SURAKSHA_PATH
@@ -29,6 +30,7 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
     from .suraksha import fusion_assurance
 
     audit = verify_audit_chain()
+    anchoring = anchor_service_status()
     settings = get_settings()
     persistence_detail = "atomic local snapshots"
     persistence_ok = True
@@ -95,17 +97,21 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
         _check("durable-persistence", "Configured persistence profile", persistence_ok, persistence_detail),
         _check("private-access", "Private authentication and role controls", True, "JWT sessions with viewer, analyst and supervisor authorization; public showcase remains synthetic"),
         _check("operational-controls", "Operational controls", True, "rate limit, request IDs, liveness/readiness and Prometheus-compatible metrics"),
-        _check("offline-runtime", "Offline-first runtime", True, "No external API, hosted database, or paid model is required"),
+        _check("hybrid-runtime", "Hybrid online/offline runtime", True, "Core analysis requires no external API; optional internet services are isolated adapters"),
+        _check("external-witness", "Privacy-preserving Bitcoin timestamp path", anchoring["submission_enabled"], f"{anchoring['provider']}; optional audit-head checkpoints only", required=False),
     ]
     required = [item for item in checks if item["required"]]
     active = active_investigation()
     return {
         "ready": all(item["passed"] for item in required),
         "offline_capable": True,
+        "online_capable": settings.connectivity_mode == "hybrid",
+        "connectivity_mode": settings.connectivity_mode,
         "external_services_required": False,
         "public_demo": public_demo,
         "active_investigation": {"id": active["id"], "name": active["name"]},
         "checks": checks,
         "audit": audit,
-        "scope_note": "Readiness verifies bundled artifacts, local integrity and configured pilot controls; it is not an accreditation or production-security certification.",
+        "anchoring": anchoring,
+        "scope_note": "Readiness verifies bundled artifacts, local integrity, optional online adapters and configured pilot controls; it is not an accreditation or production-security certification.",
     }

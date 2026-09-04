@@ -18,7 +18,8 @@
 | Protected-person risk/ML exposure | 0 | Two nodes fixed at risk 0 and removed before model feature generation |
 | Tamper-evident audit | Valid | `/api/audit/verify` recalculates sequence, previous hash, and content hash |
 | Larger supplied corpus | 500 records | 1,530 nodes and 2,127 relationships |
-| Backend verification | 33 tests passed, 1 integration test conditionally skipped locally | `pytest -q`; hybrid test runs with service containers in CI |
+| Backend verification | 34 tests passed, 1 integration test conditionally skipped locally | `pytest -q`; hybrid persistence runs with service containers in CI |
+| External audit witness | Real calendar submission verified; initial state correctly remains pending | OpenTimestamps `.ots` proof and `/api/audit/anchors`; Bitcoin aggregation is asynchronous |
 | Frontend verification | 5 tests passed | `npm test`; all eleven routes also pass a 430 px viewport overflow/target-size audit |
 | Private access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
 | Model evaluation | Leakage-audited, claim-bounded | Perfect reproduction result quarantined; ten-trial 20% evidence-masking stress F1 `0.825` mean (`0.780–0.849`); field accuracy not established |
@@ -47,7 +48,7 @@ Entity-resolution precision is intentionally reported as **not applicable**: Sen
 | Inspectable path proof | Manual | Often graph-visible | May summarize without a stable proof object | Every TRACE hop is a stored edge with a receipt |
 | Protected-person entity policy | Process dependent | Product dependent | Prompt/policy dependent | Separate type, masked default, risk 0, ML exclusion |
 | Identity resolution | Manual judgment | Product dependent | Risk of confident name-based suggestions | Contradictions visible; no automatic merge |
-| Tamper evidence | External process | Product dependent | Product dependent | Local append-only SHA-256 chain with verifier |
+| Tamper evidence | External process | Product dependent | Product dependent | Local SHA-256 chain plus optional blinded OpenTimestamps/Bitcoin checkpoint |
 | Works without paid APIs | Yes | Product dependent | Usually no | Yes |
 | Natural-language presentation | Manual | Limited | Strong | Deterministic evidence-backed briefing, no hallucinated facts |
 | Public demonstration safety | Depends on operator | Depends on product | Data-egress risk | Synthetic-only deployment mode blocks uploads |
@@ -56,7 +57,7 @@ This comparison describes architectural categories, not audited claims about nam
 
 ## Known limits and next production gates
 
-- Public free hosting has ephemeral local storage; audit events and decisions reset on service restart. The offline build persists them locally.
+- Public free hosting has ephemeral local storage; audit events, decisions and timestamp proofs reset on service restart. Download checkpoint/proof pairs immediately; the private build persists them locally.
 - The 100k benchmark proves bounded single-machine behavior, not concurrent casework or national-scale throughput.
 - The GraphSAGE checkpoint reproduces the supplied notebook's label rule and split; it is not independently validated on operational Indian data.
 - The synthetic protected-person vault proves the interaction and audit policy, not compliance with an agency's final authorization model.
