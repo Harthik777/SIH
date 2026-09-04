@@ -1,13 +1,15 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '../api'
-import type { IdentityCandidate, SurakshaEvaluation, SurakshaReplay } from '../types'
+import type { FusionAssurance, IdentityCandidate, SurakshaEvaluation, SurakshaReplay, TemporalEmergence } from '../types'
 import { FusionRoom } from './FusionRoom'
 
 vi.mock('../api', () => ({
   api: {
     getSurakshaReplay: vi.fn(),
     getSurakshaEvaluation: vi.fn(),
+    getSurakshaFusionAssurance: vi.fn(),
+    getSurakshaEmergence: vi.fn(),
     getIdentityCandidates: vi.fn(),
     decideIdentityCandidate: vi.fn(),
     getProtectedPeople: vi.fn(),
@@ -60,10 +62,26 @@ const candidate: IdentityCandidate = {
   receipt: 'f'.repeat(64),
 }
 
+const fusionAssurance: FusionAssurance = {
+  classification: 'synthetic-acceptance-evaluation', method: 'suraksha-fusion-rules-v1',
+  summary: { checks_passed: 5, checks_total: 5, patterns_recovered: 5, patterns_expected: 5, edge_provenance_coverage: 100, source_channels: 6 },
+  checks: [{ id: 'edge-provenance', label: 'Every graph relationship carries provenance', passed: true, detail: '148 of 148' }],
+  patterns: [{ id: 'circular-fund-flow', type: 'directed-account-cycle', title: 'Circular fund movement', severity: 'critical', confidence: 94, evidence_status: 'derived-lead-from-recorded-observations', source_types: ['BANK'], evidence_record_ids: ['TX-S-001', 'TX-S-003', 'TX-S-004'], evidence_records: [{ id: 'TX-S-001', source_type: 'BANK', sha256: 'z'.repeat(64) }], time_start: '2026-08-18T19:22:00', time_end: '2026-08-19T08:05:00', explanation: 'Recorded transfers form a three-account cycle.', alternative: 'Related-party settlements can create cycles.', analyst_action: 'Confirm beneficial ownership.', method: 'suraksha-fusion-rules-v1', receipt: 'g'.repeat(64) }],
+  scope_note: 'Synthetic acceptance only.', receipt: 'h'.repeat(64),
+}
+
+const emergence: TemporalEmergence = {
+  method: 'suraksha-fusion-rules-v1',
+  snapshots: [{ date: '2026-08-18', new_records: 9, cumulative_records: 11, cumulative_nodes: 27, cumulative_edges: 54, source_types_seen: ['FIR', 'CDR'], patterns_detected: 2, new_patterns: ['communication-burst'] }],
+  guardrail: 'Timestamp reconstruction, not a forecast.', receipt: 'i'.repeat(64),
+}
+
 describe('FusionRoom', () => {
   it('replays cross-source evidence and exposes the safe identity control', async () => {
     vi.mocked(api.getSurakshaReplay).mockResolvedValue(replay)
     vi.mocked(api.getSurakshaEvaluation).mockResolvedValue(evaluation)
+    vi.mocked(api.getSurakshaFusionAssurance).mockResolvedValue(fusionAssurance)
+    vi.mocked(api.getSurakshaEmergence).mockResolvedValue(emergence)
     vi.mocked(api.getIdentityCandidates).mockResolvedValue([candidate])
     vi.mocked(api.decideIdentityCandidate).mockResolvedValue()
     vi.mocked(api.getProtectedPeople).mockResolvedValue([{ id: 'PP-S-001', graph_name: 'Protected Person S-01', name: 'N•••••• R••', phone: '+91-•••••••001', address: 'WITHHELD — Karnataka', status: 'masked', risk_scoring: 'prohibited', guardrail: 'Protected' }])
@@ -78,6 +96,8 @@ describe('FusionRoom', () => {
     expect(screen.getByText('Masked by default. Never scored.')).toBeInTheDocument()
     expect(screen.getByText('VALID')).toBeInTheDocument()
     expect(screen.getByText('Prevent the dangerous merge')).toBeInTheDocument()
+    expect(screen.getByText('Circular fund movement')).toBeInTheDocument()
+    expect(screen.getByText('100%')).toBeInTheDocument()
     expect(screen.getByText('Kavya Rao')).toBeInTheDocument()
     expect(screen.getByText('K. Rao')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /false merge is deliberately prevented/i }))

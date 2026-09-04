@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, CheckCircle2, Database, Eye, Fingerprint, GitMerge, KeyRound, Layers3, LockKeyhole, Play, Radio, RefreshCcw, Route, ShieldCheck, TriangleAlert, X } from 'lucide-react'
+import { Activity, ArrowRight, Check, CheckCircle2, Database, Eye, Fingerprint, GitMerge, KeyRound, Layers3, LockKeyhole, Play, Radio, RefreshCcw, Route, ScanSearch, ShieldCheck, TriangleAlert, X } from 'lucide-react'
 import { api } from '../api'
-import type { AuditVerification, IdentityCandidate, ProtectedProfile, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness } from '../types'
+import type { AuditVerification, FusionAssurance, IdentityCandidate, ProtectedProfile, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TemporalEmergence } from '../types'
 
 const shortReceipt = (value?: string | null) => value ? `${value.slice(0, 12)}…${value.slice(-8)}` : 'pending'
 
@@ -22,15 +22,17 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
   const [audit, setAudit] = useState<AuditVerification | null>(null)
   const [readiness, setReadiness] = useState<SystemReadiness | null>(null)
   const [benchmark, setBenchmark] = useState<ScaleBenchmark | null>(null)
+  const [fusionAssurance, setFusionAssurance] = useState<FusionAssurance | null>(null)
+  const [emergence, setEmergence] = useState<TemporalEmergence | null>(null)
 
   const load = async () => {
     try {
-      const [nextReplay, nextEvaluation, nextCandidates, nextProtected, nextAudit, nextReadiness, nextBenchmark] = await Promise.all([
+      const [nextReplay, nextEvaluation, nextCandidates, nextProtected, nextAudit, nextReadiness, nextBenchmark, nextFusion, nextEmergence] = await Promise.all([
         api.getSurakshaReplay(), api.getSurakshaEvaluation(), api.getIdentityCandidates(), api.getProtectedPeople(),
-        api.getAuditVerification(), api.getReadiness(), api.getScaleBenchmark().catch(() => null),
+        api.getAuditVerification(), api.getReadiness(), api.getScaleBenchmark().catch(() => null), api.getSurakshaFusionAssurance(), api.getSurakshaEmergence(),
       ])
       setReplay(nextReplay); setEvaluation(nextEvaluation); setCandidates(nextCandidates); setProtectedPeople(nextProtected)
-      setAudit(nextAudit); setReadiness(nextReadiness); setBenchmark(nextBenchmark); setLoadError('')
+      setAudit(nextAudit); setReadiness(nextReadiness); setBenchmark(nextBenchmark); setFusionAssurance(nextFusion); setEmergence(nextEmergence); setLoadError('')
     } catch {
       setLoadError('The local evidence service is unavailable. Start the backend and retry.')
     }
@@ -126,6 +128,33 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
         <div className="fusion-orbit" aria-hidden="true"><span className="core-node">TRACE</span>{['FIR','CDR','BANK','ANPR','SURV','OSINT'].map((source, index) => <i key={source} style={{'--i': index} as React.CSSProperties}><b>{source}</b></i>)}</div>
         <div className="fusion-hero-copy"><span className="eyebrow">CROSS-SOURCE FUSION</span><h2>One case. Six evidence channels. Every inference inspectable.</h2><p>The scenario contains a hidden multi-hop network, a circular account path, time-window co-location, a bridge entity, and a deliberate identity trap. All people, identifiers, events, and organizations are fictional.</p><div className="fusion-source-counts">{Object.entries(replay?.source_counts ?? {}).map(([source,count]) => <span key={source}><strong>{count}</strong>{source}</span>)}</div><div className="fusion-hero-actions"><button className="primary-button" onClick={() => setSelectedStep(Math.min((replay?.steps.length ?? 1), selectedStep + 1))}><Play size={14}/> Reveal next signal</button><button className="secondary-button" onClick={onOpenTrace}><Route size={14}/> Open path proof</button></div>{message && <small className="fusion-message"><CheckCircle2 size={12}/>{message}</small>}</div>
         <div className="fusion-scorecard"><span className="eyebrow">GROUND-TRUTH HARNESS</span><div><strong>{summary?.entities_recovered ?? '—'}<small>/{summary?.entities_expected ?? '—'}</small></strong><span>Entity checkpoints</span><i className="pass"><Check size={12}/></i></div><div><strong>{summary?.relationships_recovered ?? '—'}<small>/{summary?.relationships_expected ?? '—'}</small></strong><span>Relation checkpoints</span><i className="pass"><Check size={12}/></i></div><div><strong>{summary?.hidden_path_recovered ? 'YES' : '—'}</strong><span>Hidden path recovered</span><i className="pass"><Route size={12}/></i></div><div><strong>{summary?.false_merges ?? '—'}</strong><span>False identity merges</span><i className="safe"><ShieldCheck size={12}/></i></div><p>{evaluation?.scope_note}</p><code title={evaluation?.receipt}><Fingerprint size={11}/>{shortReceipt(evaluation?.receipt)}</code></div>
+      </section>
+
+      <section className="panel fusion-validation-panel">
+        <div className="panel-header"><div><span className="eyebrow">COMPUTED FROM SOURCE RECORDS</span><h2>Cross-source pattern assurance</h2></div><span className="source-label"><ScanSearch size={12}/>{fusionAssurance?.summary.patterns_recovered ?? '—'}/{fusionAssurance?.summary.patterns_expected ?? '—'} PATTERNS RECOVERED</span></div>
+        <div className="fusion-validation-summary">
+          <div><small>ACCEPTANCE CHECKS</small><strong>{fusionAssurance?.summary.checks_passed ?? '—'}/{fusionAssurance?.summary.checks_total ?? '—'}</strong><span>machine-verifiable</span></div>
+          <div><small>EDGE PROVENANCE</small><strong>{fusionAssurance?.summary.edge_provenance_coverage ?? '—'}%</strong><span>source record + channel</span></div>
+          <div><small>EVIDENCE CHANNELS</small><strong>{fusionAssurance?.summary.source_channels ?? '—'}</strong><span>independently classified</span></div>
+          <div><small>FIELD CLAIM</small><strong>NOT CLAIMED</strong><span>synthetic acceptance only</span></div>
+        </div>
+        <div className="fusion-pattern-grid">{fusionAssurance?.patterns.map((pattern) => <article key={pattern.id} className={pattern.severity}>
+          <div><span className={`pattern-severity ${pattern.severity}`}>{pattern.severity}</span><code title={pattern.receipt}><Fingerprint size={10}/>{shortReceipt(pattern.receipt)}</code></div>
+          <h3>{pattern.title}</h3><p>{pattern.explanation}</p>
+          <div className="pattern-sources">{pattern.source_types.map((source) => <span key={source}>{source}</span>)}</div>
+          <small><strong>{pattern.evidence_record_ids.length} source objects</strong> · {pattern.evidence_record_ids.slice(0, 4).join(' · ')}{pattern.evidence_record_ids.length > 4 ? ' …' : ''}</small>
+          <details><summary>Challenge this lead</summary><p><strong>Alternative:</strong> {pattern.alternative}</p><p><strong>Next action:</strong> {pattern.analyst_action}</p><p className="pattern-digests"><strong>Record receipts:</strong> {pattern.evidence_records.slice(0, 3).map((record) => `${record.id} ${record.sha256.slice(0, 8)}…`).join(' · ')}</p></details>
+        </article>)}</div>
+        <p className="trace-guardrail"><ShieldCheck size={14}/>{fusionAssurance?.scope_note}</p>
+      </section>
+
+      <section className="panel emergence-panel">
+        <div className="panel-header"><div><span className="eyebrow">TEMPORAL KNOWLEDGE GRAPH</span><h2>How the network emerged</h2></div><span className="source-label"><Activity size={12}/> TIMESTAMP RECONSTRUCTION</span></div>
+        <div className="emergence-track">{emergence?.snapshots.map((snapshot, index) => <div key={snapshot.date} className={snapshot.new_patterns.length ? 'milestone' : ''}>
+          <span>{new Date(`${snapshot.date}T00:00:00`).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}</span><i/><strong>{snapshot.cumulative_nodes} entities</strong><small>{snapshot.cumulative_records} records · {snapshot.source_types_seen.length} channels</small><em>{snapshot.new_patterns.length ? `+ ${snapshot.new_patterns.map((item) => item.replaceAll('-', ' ')).join(', ')}` : index === 0 ? 'first preserved records' : 'evidence accumulated'}</em>
+        </div>)}</div>
+        <div className="trace-receipt"><Fingerprint size={14}/><span><small>EMERGENCE RECEIPT</small><code title={emergence?.receipt}>{shortReceipt(emergence?.receipt)}</code></span></div>
+        <p className="trace-guardrail"><ShieldCheck size={14}/>{emergence?.guardrail}</p>
       </section>
 
       <div className="fusion-layout">

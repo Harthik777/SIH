@@ -26,6 +26,7 @@ def _check(check_id: str, label: str, passed: bool, detail: str, required: bool 
 def system_readiness(public_demo: bool = False) -> dict[str, Any]:
     from .investigation_store import active_investigation
     from .config import get_settings
+    from .suraksha import fusion_assurance
 
     audit = verify_audit_chain()
     settings = get_settings()
@@ -43,6 +44,7 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
             persistence_detail = f"hybrid persistence unavailable: {type(exc).__name__}"
     benchmark_available = BENCHMARK_PATH.exists()
     model_evaluation_available = False
+    fusion_assurance_available = False
     benchmark_sizes: list[int] = []
     if benchmark_available:
         try:
@@ -55,16 +57,28 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
             evaluation = json.loads(MODEL_EVALUATION_PATH.read_text(encoding="utf-8"))
             model_evaluation_available = bool(
                 evaluation.get("graphsage", {}).get("metrics_on_full_supplied_graph")
+                and evaluation.get("graphsage", {}).get("held_out_node_validation")
                 and evaluation.get("fixed_baselines")
+                and evaluation.get("claim_assurance", {}).get("field_accuracy") == "not-established"
                 and len(evaluation.get("limitations", [])) >= 4
             )
         except (OSError, TypeError, json.JSONDecodeError):
             model_evaluation_available = False
+    try:
+        fusion = fusion_assurance()
+        fusion_assurance_available = bool(
+            fusion["summary"]["checks_passed"] == fusion["summary"]["checks_total"]
+            and fusion["summary"]["patterns_recovered"] == fusion["summary"]["patterns_expected"]
+            and fusion["summary"]["edge_provenance_coverage"] == 100.0
+        )
+    except (KeyError, TypeError, ValueError):
+        fusion_assurance_available = False
     storage_parent = AUDIT_PATH.parent
     storage_parent.mkdir(parents=True, exist_ok=True)
     checks = [
         _check("flagship-fixture", "Operation Suraksha fixture", SURAKSHA_PATH.exists(), SURAKSHA_PATH.name),
         _check("ground-truth", "Ground-truth evaluation", GROUND_TRUTH_PATH.exists(), GROUND_TRUTH_PATH.name),
+        _check("fusion-assurance", "Cross-source pattern and provenance assurance", fusion_assurance_available, "5/5 synthetic patterns; record-level provenance on every edge"),
         _check("privacy-vault", "Protected-person vault", PROTECTED_PATH.exists(), "masked by default; synthetic fixture"),
         _check("ontology", "Crime ontology", ONTOLOGY_PATH.exists(), ONTOLOGY_PATH.name),
         _check("graphsage-checkpoint", "GraphSAGE checkpoint", CHECKPOINT_PATH.exists(), CHECKPOINT_PATH.name),

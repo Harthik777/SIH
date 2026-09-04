@@ -3,7 +3,7 @@
 **Problem:** AI-Powered Criminal Network Analysis System  
 **Organization:** Ministry of Home Affairs  
 **Department:** NCRB, Women Safety Division  
-**Build date:** 04 September 2026  
+**Build date:** 05 September 2026
 **Operating target:** free, offline-capable single-machine demonstration plus a synthetic-only public web edition
 
 ## Evaluation summary
@@ -23,7 +23,7 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 | Extract organizations | Organization/company/employer/merchant fields become `organization` nodes | Upload a transaction/OSINT-shaped CSV and filter Organization |
 | Build relationship maps | Ontology predicates plus generic observed-source predicates produce directed graph edges | Graph explorer, relationship dossier, JSON and GraphML exports |
 | Identify influential individuals | Person-only degree, sampled Brandes betweenness, reach, and composite influence | Advanced analytics → Influential people → switch ranking method |
-| Detect suspicious patterns | Explainable risk rules, circular transfers, time-window convergence, repeat-subject/location detection, temporal motifs, anomaly links, GraphSAGE suspect classifier | Fusion replay, Risk panel, Alert center, GraphSAGE panel, TRACE Lab motif radar |
+| Detect suspicious patterns | Runtime call-burst, repeated-transfer, directed-cycle, time/location convergence, bridge-entity, repeat-subject/location, temporal motif, anomaly-link, and GraphSAGE detectors | Fusion assurance matrix and emergence timeline, Risk panel, Alert center, GraphSAGE claim passport, TRACE Lab |
 | Discover hidden links | Cross-source bridge discovery, feature-overlap candidate ranking with every signal exposed, and stored-edge path proving for known connectivity | Operation Suraksha recovers the declared Subject A-17 → Coordinator C-04 path; TRACE exposes every hop and receipt |
 | Prevent unsafe identity linkage | Candidate merge shows support and contradictions; name-only match is rejected; only a human can keep separate or request more verification | Fusion replay → Entity resolution control; Kavya Rao and K. Rao remain distinct nodes |
 | Provide visual and analytical insight | Interactive graph, source timeline, concentration grid, risk trajectory, distributions, communities, findings | Command center and Advanced analytics |
@@ -34,6 +34,7 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 - All core processing runs locally; no paid or cloud API is required.
 - Uploaded filenames are path-normalized and size-limited; active graph snapshots use atomic file replacement.
 - Every evidence input receives a SHA-256 digest.
+- Every graph relationship carries its exact source record ID, source channel, observation time, and canonical SHA-256 record digest.
 - Investigation actions form an append-only SHA-256 chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and resets; `/api/audit/verify` detects content or linkage changes.
 - API responses use no-store, no-sniff, frame-deny, no-referrer, and restrictive permissions headers.
 - The frontend deployment includes a Content Security Policy.
@@ -43,6 +44,7 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 - Private Docker deployment uses a durable state volume, PostgreSQL investigation catalogue, and case-scoped Neo4j graph keys.
 - GraphSAGE checkpoints load with `weights_only=True`.
 - The model refuses inference on out-of-training-schema graphs and shows a structural preview instead.
+- The model claim passport labels feature/target dependency as high, field accuracy as not established, and operational release as blocked pending independent validation.
 - Protected-person nodes are removed before all model feature generation and can never receive model probabilities.
 - Risk scores and new link candidates cannot trigger automated enforcement.
 - TRACE results include deterministic SHA-256 receipts, alternative explanations, and explicit observation/derivation labels.
@@ -61,11 +63,12 @@ The geographic view uses a deterministic operational display grid because the su
 
 ## Verified acceptance checks
 
-- Backend: 29 API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and model evaluation, source-derived analytics, TRACE proof outputs, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, exports, and credential rejection.
+- Backend: 33 local API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and claim-bounded evaluation, source-derived analytics, TRACE proof outputs, five-pattern fusion assurance, temporal emergence, per-edge record provenance, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, exports, and credential rejection.
+- Hybrid integration: a dedicated CI job starts real PostgreSQL and Neo4j services, persists two graphs with colliding local IDs, retrieves them independently, checks record digests, and deletes them.
 - Frontend: 4 component tests covering the command center, private login, explainable briefing, and interactive Fusion Room.
 - Production frontend build passes under React 19.2 and supported Vite 6.4.
 - Frontend dependency audit reports zero known vulnerabilities.
-- Flagship demo: 32 synthetic records → 64 entities → 148 relationships; 14/14 entity checkpoints, 6/6 relation checkpoints, hidden path recovered, zero false merges.
+- Flagship demo: 32 synthetic records → 64 entities → 148 fully provenanced relationships; 14/14 entity checkpoints, 6/6 relation checkpoints, 5/5 computed patterns, hidden path recovered, zero false merges.
 - Larger validation investigation: 500 supplied records → 1,530 entities → 2,127 relationships.
 - Scale harness: 100,000 synthetic records → 104,256 nodes and 400,000 edges in 80.838 seconds on the documented laptop; limitations are stated in `SUBMISSION_EVALUATION.md`.
 

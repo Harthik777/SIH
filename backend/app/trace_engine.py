@@ -105,6 +105,10 @@ def connection_path(payload: GraphPayload, source_id: str, target_id: str, max_h
                 "anomalous": edge.anomalous,
                 "direction": "forward" if edge.source == start else "reverse traversal",
                 "evidence_status": "stored-observation",
+                "evidence_record_ids": edge.evidence_record_ids,
+                "evidence_hashes": edge.evidence_hashes,
+                "source_types": edge.source_types,
+                "observed_at": edge.observed_at,
             }
         )
     result = {

@@ -1,5 +1,5 @@
 import { graphData } from './data/mockData'
-import type { AlertItem, AnalyticsDistribution, AuditVerification, AuthUser, CentralityResult, ConnectionPath, CounterfactualResult, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, ModelEvaluation, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TimelineEvent, UploadRecord } from './types'
+import type { AlertItem, AnalyticsDistribution, AuditVerification, AuthUser, CentralityResult, ConnectionPath, CounterfactualResult, FusionAssurance, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, ModelEvaluation, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TemporalEmergence, TimelineEvent, UploadRecord } from './types'
 
 const TOKEN_KEY = 'sentinel-access-token'
 
@@ -134,6 +134,14 @@ export const api = {
 
   async getSurakshaEvaluation(): Promise<SurakshaEvaluation> {
     return json<SurakshaEvaluation>('/api/demo/suraksha/evaluation')
+  },
+
+  async getSurakshaFusionAssurance(): Promise<FusionAssurance> {
+    return json<FusionAssurance>('/api/demo/suraksha/fusion-assurance')
+  },
+
+  async getSurakshaEmergence(): Promise<TemporalEmergence> {
+    return json<TemporalEmergence>('/api/demo/suraksha/emergence')
   },
 
   async getIdentityCandidates(): Promise<IdentityCandidate[]> {

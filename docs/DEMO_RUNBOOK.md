@@ -8,7 +8,7 @@ Sentinel fuses disconnected evidence into proof-carrying investigative leads: ev
 
 1. Run `npm run dev` and open `http://localhost:5173`.
 2. Open **Fusion replay** and activate **Operation Suraksha** if it is not already active.
-3. Click **Reset**, then **Start guided demo**. Keep browser zoom at 100% and confirm the scorecard reads `14/14`, `6/6`, `YES`, and `0`.
+3. Click **Reset**, then **Start guided demo**. Keep browser zoom at 100% and confirm the scorecard reads `14/14`, `6/6`, `YES`, and `0`; the computed assurance panel should read `5/5` patterns and `100%` edge provenance.
 4. Do not describe the scenario as real NCRB data. It is a deliberately fictional Bengaluru-area acceptance exercise.
 
 ## Demo flow
@@ -18,6 +18,8 @@ Sentinel fuses disconnected evidence into proof-carrying investigative leads: ev
    - Say: “These are 32 fictional records that look like six disconnected evidence exports: FIR, CDR, bank, ANPR, surveillance, and OSINT preservation.”
    - Click **Reveal next signal** through the stages: pre-incident call burst, circular account path, time-window convergence, and bridge entity.
    - Point out that each stage carries a SHA-256 receipt and source-backed object IDs.
+   - Scroll to **Cross-source pattern assurance**. Emphasize that the five findings are recomputed from records, not hard-coded presentation claims; open **Challenge this lead** to show the alternative explanation, next action, and record receipts.
+   - Show **How the network emerged**: evidence starts with preserved OSINT, four patterns become detectable on 18 August, and the account cycle closes on 19 August.
 
 2. **Show protected-person privacy (45 seconds)**
    - Scroll to **Protected-person privacy** and show the masked identity.
@@ -32,12 +34,12 @@ Sentinel fuses disconnected evidence into proof-carrying investigative leads: ev
 4. **Prove the hidden connection (60 seconds)**
    - Select **Open path proof** to enter **TRACE Lab**.
    - Choose `Subject A-17` and `Coordinator C-04`, then calculate the path.
-   - Walk through the stored edges and show the path receipt. Distinguish observations from derived leads and hypotheses.
+   - Walk through the stored edges and show the source channel plus record ID on every hop. Distinguish observations from derived leads and hypotheses.
 
 5. **Show the full investigation workspace (60 seconds)**
    - Open **Graph explorer** and search for `Coordinator C-04`.
    - Show links across phones, accounts, the shared vehicle, organization, locations, and events.
-   - Open **Advanced analytics** to show centrality and topology. Explain that the supplied GraphSAGE model refuses to claim compatible inference on this richer schema and labels the output `schema-incompatible-preview`.
+   - Open **Advanced analytics** to show centrality, topology, and the model claim passport. Explain that the 1.00 score is a reproducible structural-proxy result with high feature/target dependency—not field accuracy—and that Operation Suraksha is outside the training schema.
 
 6. **Show transfer to new evidence (45 seconds)**
    - Open **Data ingestion** and explain the CSV/JSON/TXT/XML/RDF/TTL path.
@@ -56,11 +58,13 @@ React investigator console
 FastAPI evidence + analytics service
         ├── multi-source extraction and ontology alignment
         ├── active knowledge graph + NetworkX analytics
-        ├── TRACE paths, motifs, counterfactuals, receipts
+        ├── five-pattern fusion assurance + temporal emergence
+        ├── TRACE paths, motifs, counterfactuals, record receipts
         ├── safe entity-resolution review
         └── optional CPU GraphSAGE inference
 
-Optional deployment adapters: Neo4j, PostgreSQL, Redis, Celery
+Private deployment adapters: Neo4j, PostgreSQL, Redis, Celery
+Release CI: real PostgreSQL + Neo4j case-isolation integration test
 ```
 
 ## Judge questions
@@ -72,7 +76,7 @@ The core task is evidence linkage, not fluent text generation. A cloud LLM would
 They are real acceptance results against the declared synthetic Operation Suraksha ground truth: 14/14 entity checkpoints, 6/6 relation types, the intended hidden path recovered, and zero false merges. The 10k/100k numbers are measured on the documented machine. None are presented as accuracy on operational police data.
 
 **Does it require internet or paid APIs?**  
-No. Runtime processing, graph analytics, model inference, provenance, replay, and report generation run locally. The internal-round public URL hosts the same complete web app; the offline edition still works when internet access is unavailable.
+No. Runtime processing, graph analytics, model inference, provenance, replay, and report generation run locally. The competition public URL hosts the same complete web app; the offline edition still works when internet access is unavailable.
 
 **Can it scale beyond one machine?**  
 The measured single-process harness built 100,000 synthetic records into 104,256 nodes and 400,000 edges in 80.838 seconds on the documented laptop. That proves bounded prototype scale, not national production scale. Included Neo4j, PostgreSQL, Redis, and Celery seams support the next deployment tier after security and policy approval.

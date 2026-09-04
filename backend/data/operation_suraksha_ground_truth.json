@@ -25,5 +25,20 @@
     "right": "K. Rao",
     "expected_decision": "keep-separate",
     "reason": "Distinct phone identifiers and near-simultaneous observations at different cities outweigh name similarity."
-  }
+  },
+  "expected_source_counts": {
+    "ANPR": 4,
+    "BANK": 7,
+    "CDR": 10,
+    "FIR": 6,
+    "OSINT": 2,
+    "SURVEILLANCE": 3
+  },
+  "expected_patterns": [
+    "communication-burst",
+    "rapid-split-transfer",
+    "circular-fund-flow",
+    "cross-source-convergence",
+    "cross-channel-bridge"
+  ]
 }

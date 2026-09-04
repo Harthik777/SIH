@@ -9,7 +9,8 @@ The repository opens with **Operation Suraksha**, a clearly labelled fictional B
 - 32 synthetic records across FIR, CDR, banking, ANPR, surveillance, and OSINT-shaped evidence
 - 64 typed entities and 148 source-linked relationships
 - 14/14 entity and 6/6 relationship acceptance checkpoints recovered
-- one hidden cross-source path, one circular account pattern, and one deliberate false-identity-merge trap
+- five computed cross-source/temporal patterns, one hidden path, and one deliberate false-identity-merge trap
+- record-level provenance on all 148 relationships, including source channel, record ID, timestamp, and SHA-256 digest
 - two protected-person nodes that remain pseudonymized, fixed at risk 0, and excluded from model inference
 - a six-stage judge replay, reset/readiness controls, and deterministic receipts
 
@@ -50,7 +51,7 @@ The frontend has a deterministic fallback dataset, so it still renders if the AP
 
 ## Deploy the complete website
 
-The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures the live, synthetic-only internal-round deployment at [sentinel-sih-26189-harthik.onrender.com](https://sentinel-sih-26189-harthik.onrender.com); public mode keeps every analysis module available but blocks arbitrary uploads. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures the live, synthetic-only competition deployment at [sentinel-sih-26189-harthik.onrender.com](https://sentinel-sih-26189-harthik.onrender.com); public mode keeps every analysis module available but blocks arbitrary uploads and credential login. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Run the complete stack
 
@@ -79,6 +80,8 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Automatic FIR narrative extraction plus explicit field mapping for CDR, transaction, surveillance, and OSINT-shaped CSV/JSON records
 - Durable local investigation snapshots with an active-investigation selector; a processed graph immediately drives every downstream view
 - Operation Suraksha Fusion Room: a six-stage cross-source replay, synthetic ground-truth scorecard, hidden-network reveal, and safe entity-resolution decision control
+- Deterministic fusion assurance: communication bursts, repeated transfers, directed account cycles, time/location convergence, and cross-channel bridge detection computed from source records
+- Temporal graph emergence: day-by-day reconstruction of evidence, entities, relationships, channels, and newly detectable patterns
 - Protected-person privacy mode: separate entity type, masked default, zero criminal-risk score, ML/ranking exclusion, reasoned ephemeral reveal, and audit receipt
 - Append-only SHA-256 audit chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and demo resets
 - Repeatable demonstration controls with stage-one start, safe reset, offline readiness, and integrity verification
@@ -88,7 +91,7 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Active-graph risk scoring, anomaly triage, persisted-in-session alert acknowledgement, and natural-language explanations
 - Key-individual rankings using degree, deterministic sampled betweenness, reach, and composite influence
 - Communities, type distributions, exact degree distribution, modularity, and clearly labelled topology visualization
-- GraphSAGE suspect-risk feature preparation, model status, and optional checkpoint inference
+- GraphSAGE suspect-risk feature preparation, checkpoint inference, held-out proxy evaluation, and a model claim passport that blocks field-accuracy claims
 - Expandable finding rationale with source records, alternatives, limitations, and human-review actions
 - Evidence Trust Center with data-quality, provenance, model-readiness, and decision-policy gates
 - Transparent case↔subject link hypotheses whose supporting feature overlaps are inspectable
@@ -133,7 +136,7 @@ npm run install:ml
 python backend/scripts/train_graphsage.py --epochs 200 --seed 1
 ```
 
-The notebook-reported validation score is retained as training metadata, not presented as an independent test result. `python backend/scripts/evaluate_model.py` produces fixed-baseline comparisons, a confusion matrix and a Brier score in `backend/benchmarks/model_evaluation.json`. The accompanying [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) explicitly records that the labels are structural proxies rather than adjudicated outcomes. Model outputs are decision support for analyst review and are not evidence of guilt.
+The notebook-reported validation score is retained as training metadata, not presented as an independent test result. `python backend/scripts/evaluate_model.py` produces fixed-baseline comparisons, full-corpus and fixed 87-node transductive-holdout confusion matrices, Brier scores, and a machine-readable claim passport in `backend/benchmarks/model_evaluation.json`. Because topology defines both the features and proxy target, the UI explicitly marks feature/target dependency as high and field accuracy as **not established**. The accompanying [`docs/MODEL_CARD.md`](docs/MODEL_CARD.md) records the release gate. Model outputs are decision support for analyst review and are not evidence of guilt.
 
 ## Evidence integrity and responsible analysis
 
@@ -146,6 +149,7 @@ The platform maintains explicit epistemic boundaries:
 - new links from `/api/analysis/link-candidates` are labelled hypotheses, not facts;
 - the supplied 50-row link output is retained but marked non-actionable because all scores are identical and below threshold;
 - every consequential finding includes alternative explanations and a required human verification step.
+- every Operation Suraksha relationship carries its source-record identifier, channel, timestamp, and canonical record digest.
 
 Both built-in investigations pass their schema-specific data-quality gates. Operation Suraksha additionally evaluates itself against a transparent synthetic ground truth; those checks establish scenario reproducibility, not real-world model accuracy.
 
@@ -204,7 +208,7 @@ The API includes all requested route groups:
 - `/api/pipeline/start`, `/api/pipeline/status/{id}`, `/api/pipeline/stream/{id}`
 - `/api/graph/nodes`, `/api/graph/edges`, `/api/graph/subgraph`, `/api/graph/search`, `/api/graph/metrics`
 - `/api/investigations`, `/api/investigations/active`, `/api/investigations/{id}/activate`
-- `/api/demo/suraksha/replay`, `/api/demo/suraksha/evaluation`
+- `/api/demo/suraksha/replay`, `/api/demo/suraksha/evaluation`, `/api/demo/suraksha/fusion-assurance`, `/api/demo/suraksha/emergence`
 - `/api/demo/suraksha/reset`, `/api/system/readiness`, `/api/benchmarks/scale`, `/api/benchmarks/model`
 - `/api/protected-persons`, `/api/protected-persons/{id}/reveal`, `/api/audit`, `/api/audit/verify`
 - `/api/entity-resolution/candidates`, `/api/entity-resolution/{id}/decision`
@@ -231,4 +235,4 @@ This runs the frontend component tests and backend API tests. A production front
 
 ## Production notes
 
-The default API graph store is durable local JSON with atomic replacement, designed for free single-machine evaluation. The private Docker profile activates hybrid persistence: PostgreSQL catalogues case metadata while Neo4j stores case-scoped nodes and relationships, with local snapshots retained for recovery. Authentication is mandatory in that profile and role checks protect sensitive mutations and protected-person reveal. See [`docs/SECURITY_OPERATIONS.md`](docs/SECURITY_OPERATIONS.md) for credentials, backup, monitoring and the remaining agency-accreditation boundary.
+The default API graph store is durable local JSON with atomic replacement, designed for free single-machine evaluation. The private Docker profile activates hybrid persistence: PostgreSQL catalogues case metadata while Neo4j stores case-scoped nodes and relationships, with local snapshots retained for recovery. Authentication is mandatory in that profile and role checks protect sensitive mutations and protected-person reveal. A separate GitHub Actions job boots real PostgreSQL and Neo4j service containers, round-trips two same-ID graphs, and verifies case isolation on every release. See [`docs/SECURITY_OPERATIONS.md`](docs/SECURITY_OPERATIONS.md) for credentials, backup, monitoring and the remaining agency-accreditation boundary.

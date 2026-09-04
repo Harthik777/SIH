@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BrainCircuit, Braces, GitBranch, Network, Share2 } from 'lucide-react'
+import { BrainCircuit, Braces, GitBranch, Network, Share2, ShieldAlert } from 'lucide-react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../api'
 import type { AnalyticsDistribution, CentralityResult, GraphData, GraphSageAnalysis, GraphSageResult, ModelEvaluation, RiskTrendPoint } from '../types'
@@ -74,8 +74,8 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
               <div><small>MODEL</small><strong>2 × 32</strong><em>message-passing layers</em></div>
               <div><small>FEATURES</small><strong>7</strong><em>6 types + degree</em></div>
               <div><small>TRAINING GRAPH</small><strong>1,530</strong><em>nodes · 2,127 edges</em></div>
-              <div><small>VALIDATION F1</small><strong>{(graphSage?.model.training_summary.reproduced_checkpoint?.validation_f1 ?? 1).toFixed(2)}</strong><em>{graphSage?.model.training_summary.reproduced_checkpoint ? 'reproduced checkpoint' : 'notebook-reported'}</em></div>
-              <div><small>BRIER SCORE</small><strong>{modelEvaluation?.graphsage.brier_score?.toFixed(3) ?? '—'}</strong><em>supplied corpus calibration</em></div>
+              <div><small>PROXY HOLDOUT F1</small><strong>{(modelEvaluation?.graphsage.held_out_node_validation?.metrics.f1 ?? graphSage?.model.training_summary.reproduced_checkpoint?.validation_f1 ?? 0).toFixed(2)}</strong><em>{modelEvaluation?.graphsage.held_out_node_validation?.samples ?? 87} transductive nodes</em></div>
+              <div><small>HOLDOUT BRIER</small><strong>{modelEvaluation?.graphsage.held_out_node_validation?.brier_score?.toFixed(3) ?? '—'}</strong><em>structural proxy calibration</em></div>
               <div><small>RISK BASELINE F1</small><strong>{modelEvaluation?.fixed_baselines.risk_score_at_least_70.f1.toFixed(2) ?? '—'}</strong><em>fixed transparent comparator</em></div>
             </div>
             <div className="graphsage-ranking">
@@ -86,6 +86,7 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
               })}
             </div>
           </div>
+          <div className="model-assurance-bar"><ShieldAlert size={21}/><div><small>MODEL CLAIM PASSPORT</small><strong>Field accuracy: {modelEvaluation?.claim_assurance?.field_accuracy?.replaceAll('-', ' ') ?? 'not established'}</strong><p>{modelEvaluation?.claim_assurance?.dependency_explanation ?? 'The structural proxy is not an independently adjudicated operational outcome.'}</p></div><span><small>FEATURE/TARGET DEPENDENCY</small><strong>{modelEvaluation?.claim_assurance?.feature_target_dependency ?? 'HIGH'}</strong></span><span><small>OPERATIONAL RELEASE</small><strong>BLOCKED</strong></span></div>
           <p className="model-note">{graphSage?.message ?? 'GraphSAGE architecture loaded. The trained .pt checkpoint is required before this preview becomes model inference.'} Labels are structural proxies—not independently adjudicated outcomes. Outputs support analyst review and must not be treated as evidence of guilt.</p>
         </section>
       </div>

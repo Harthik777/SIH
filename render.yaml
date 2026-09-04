@@ -23,3 +23,5 @@ services:
         generateValue: true
       - key: SENTINEL_ANALYST_PASSWORD
         generateValue: true
+      - key: SENTINEL_SUPERVISOR_PASSWORD
+        generateValue: true

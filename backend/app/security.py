@@ -113,10 +113,12 @@ def decode_token(token: str) -> Principal:
 
 def resolve_principal(authorization: str | None, *, enforce: bool = True) -> Principal:
     settings = get_settings()
+    if settings.public_demo:
+        # Public competition builds expose only bundled synthetic evidence. Ignore
+        # stale private tokens so an old browser session cannot lock out the demo.
+        return Principal("public-demo@sentinel.local", "demo", "synthetic-public-demo")
     if authorization and authorization.startswith("Bearer "):
         return decode_token(authorization.removeprefix("Bearer ").strip())
-    if settings.public_demo:
-        return Principal("public-demo@sentinel.local", "demo", "synthetic-public-demo")
     if settings.auth_mode == "optional" or not enforce:
         return Principal(settings.supervisor_email, "supervisor", "trusted-local")
     raise HTTPException(status_code=401, detail="Authentication required")
@@ -135,4 +137,3 @@ def require_roles(*roles: str) -> Callable[[Principal], Principal]:
         return principal
 
     return dependency
-

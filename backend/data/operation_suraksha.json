@@ -26,7 +26,7 @@
   {"transaction_id":"TX-S-007","timestamp":"2026-08-20 21:41:00","record_type":"wallet transfer","sender_name":"Subject A-17","source_account":"AC-SUR-1101","destination_account":"WL-SUR-4401","amount":"9500","signal":"synthetic suspicious split transfer"},
 
   {"record_id":"ANPR-S-001","timestamp":"2026-08-18 18:39:00","record_type":"anpr sighting","vehicle_plate":"KA-01-XX-1701","location":"Majestic Transit Hub, Bengaluru","person_name":"Subject A-17","signal":"synthetic source observation"},
-  {"record_id":"ANPR-S-002","timestamp":"2026-08-20 20:31:00","record_type":"anpr sighting","vehicle_plate":"KA-01-XX-1701","location":"Indiranagar Metro, Bengaluru","person_name":"Associate B-09","signal":"synthetic cross-source vehicle association"},
+  {"record_id":"ANPR-S-002","timestamp":"2026-08-20 20:31:00","record_type":"anpr sighting","vehicle_plate":"KA-01-XX-1701","location":"Majestic Transit Hub, Bengaluru","person_name":"Associate B-09","signal":"synthetic cross-source vehicle association"},
   {"record_id":"ANPR-S-003","timestamp":"2026-08-21 17:58:00","record_type":"anpr sighting","vehicle_plate":"KA-01-XX-1701","location":"Whitefield Tech Park, Bengaluru","person_name":"Coordinator C-04","signal":"synthetic cross-source vehicle association"},
   {"record_id":"ANPR-S-004","timestamp":"2026-08-24 09:58:00","record_type":"anpr control sighting","vehicle_plate":"KA-09-YY-4402","location":"Mysuru Junction, Karnataka","person_name":"Kavya Rao","signal":"synthetic benign control record"},
 

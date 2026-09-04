@@ -33,7 +33,7 @@ from .network_intelligence import risk_trend, structure_metrics, timeline as act
 from .operations import operations_monitor, rate_limiter
 from .security import Principal, authenticate, get_principal, issue_token, require_roles, resolve_principal
 from .state import make_pipeline, pipeline_events, pipelines, remove_upload_file, run_pipeline, uploads
-from .suraksha import evaluation as suraksha_evaluation
+from .suraksha import emergence as suraksha_emergence, evaluation as suraksha_evaluation, fusion_assurance as suraksha_fusion_assurance
 from .protected_persons import masked_profiles, reveal_profile
 from .readiness import BENCHMARK_PATH, MODEL_EVALUATION_PATH, system_readiness
 from .suraksha import record_resolution_decision, replay as suraksha_replay, reset_demo as reset_suraksha_demo, resolution_candidates
@@ -188,6 +188,8 @@ def prometheus_metrics():
 
 @app.post("/api/auth/login", tags=["authentication"])
 def login(credentials: LoginRequest):
+    if settings.public_demo:
+        raise HTTPException(status_code=403, detail="Login is disabled on the public synthetic showcase; no credentials are required.")
     principal = authenticate(credentials.email, credentials.password)
     if principal is None:
         raise HTTPException(status_code=401, detail="Invalid local credentials")
@@ -294,6 +296,16 @@ def flagship_replay():
 @app.get("/api/demo/suraksha/evaluation", tags=["flagship demonstration"])
 def flagship_evaluation():
     return suraksha_evaluation()
+
+
+@app.get("/api/demo/suraksha/fusion-assurance", tags=["flagship demonstration"])
+def flagship_fusion_assurance():
+    return suraksha_fusion_assurance()
+
+
+@app.get("/api/demo/suraksha/emergence", tags=["flagship demonstration"])
+def flagship_emergence():
+    return suraksha_emergence()
 
 
 @app.get("/api/entity-resolution/candidates", tags=["entity resolution"])
@@ -695,11 +707,31 @@ def export_json(principal: Annotated[Principal, Depends(require_roles("analyst")
 def export_graphml(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
     payload = graph()
     append_audit_event("evidence.export", "graphml", {"investigation": active_investigation()["id"]}, actor=principal.email)
-    parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">', '<graph id="sentinel" edgedefault="undirected">']
+    parts = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">',
+        '<key id="label" for="all" attr.name="label" attr.type="string"/>',
+        '<key id="type" for="node" attr.name="type" attr.type="string"/>',
+        '<key id="risk" for="node" attr.name="risk" attr.type="int"/>',
+        '<key id="confidence" for="edge" attr.name="confidence" attr.type="int"/>',
+        '<key id="sources" for="edge" attr.name="source_types" attr.type="string"/>',
+        '<key id="evidence" for="edge" attr.name="evidence_record_ids" attr.type="string"/>',
+        '<key id="evidence_hashes" for="edge" attr.name="evidence_sha256" attr.type="string"/>',
+        '<key id="observed_at" for="edge" attr.name="observed_at" attr.type="string"/>',
+        '<graph id="sentinel" edgedefault="directed">',
+    ]
     for node in payload.nodes:
         parts.append(f'<node id="{node.id}"><data key="label">{_xml(node.name)}</data><data key="type">{node.type}</data><data key="risk">{node.risk}</data></node>')
     for edge in payload.edges:
-        parts.append(f'<edge id="{edge.id}" source="{edge.source}" target="{edge.target}"><data key="label">{_xml(edge.label)}</data></edge>')
+        parts.append(
+            f'<edge id="{edge.id}" source="{edge.source}" target="{edge.target}">'
+            f'<data key="label">{_xml(edge.label)}</data>'
+            f'<data key="confidence">{edge.confidence}</data>'
+            f'<data key="sources">{_xml(",".join(edge.source_types))}</data>'
+            f'<data key="evidence">{_xml(",".join(edge.evidence_record_ids))}</data>'
+            f'<data key="evidence_hashes">{_xml(",".join(edge.evidence_hashes))}</data>'
+            f'<data key="observed_at">{_xml(edge.observed_at or "")}</data></edge>'
+        )
     parts.extend(["</graph>", "</graphml>"])
     return Response("\n".join(parts), media_type="application/graphml+xml", headers={"Content-Disposition": "attachment; filename=sentinel_graph.graphml"})
 
@@ -754,6 +786,7 @@ def export_report_pdf(principal: Annotated[Principal, Depends(require_roles("ana
     buffer = io.BytesIO()
     brief = investigation_briefing()
     manifest = provenance_manifest()
+    fusion_summary = suraksha_fusion_assurance()["summary"] if active_investigation()["id"] == "operation-suraksha" else None
     canvas = Canvas(buffer, pagesize=A4)
     canvas.setTitle(f"Sentinel - {brief['investigation']} Intelligence Brief")
     canvas.setAuthor("Sentinel Local Investigation Platform")
@@ -784,12 +817,14 @@ def export_report_pdf(principal: Annotated[Principal, Depends(require_roles("ana
         y -= 23
     canvas.setFillColor(HexColor("#EDF5F2")); canvas.setFont("Helvetica-Bold", 12); canvas.drawString(194, y - 4, "Assurance & provenance")
     assurance_y = y - 28
-    assurance = (
+    assurance = [
         ("DATA QUALITY", f"{brief['quality']['required_field_completeness']}% complete · {brief['quality']['duplicate_case_numbers']} duplicate cases"),
         ("SOURCE INTEGRITY", f"{manifest['verified_sources']}/{len(manifest['sources'])} SHA-256 verified artifacts"),
-        ("MODEL STATUS", f"GraphSAGE {brief['model']['status']} · reproduced validation F1 1.00"),
+        ("MODEL STATUS", "Structural proxy reproduced · field accuracy not established"),
         ("DECISION POLICY", "Human verification required · no automated enforcement"),
-    )
+    ]
+    if fusion_summary:
+        assurance.insert(3, ("FUSION PROOF", f"{fusion_summary['patterns_recovered']}/{fusion_summary['patterns_expected']} patterns · {fusion_summary['edge_provenance_coverage']}% edge provenance"))
     for label, value in assurance:
         canvas.setFillColor(HexColor("#45D6B1")); canvas.setFont("Helvetica-Bold", 7); canvas.drawString(194, assurance_y, label)
         canvas.setFillColor(HexColor("#9BAEA7")); canvas.setFont("Helvetica", 7); canvas.drawString(278, assurance_y, value[:58])

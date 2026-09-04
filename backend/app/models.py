@@ -40,6 +40,11 @@ class GraphEdge(BaseModel):
     label: str
     confidence: int = Field(ge=0, le=100)
     anomalous: bool = False
+    evidence_record_ids: list[str] = Field(default_factory=list)
+    evidence_hashes: list[str] = Field(default_factory=list)
+    source_types: list[str] = Field(default_factory=list)
+    observed_at: str | None = None
+    epistemic_status: Literal["observed", "derived"] = "observed"
 
 
 class GraphPayload(BaseModel):

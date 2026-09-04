@@ -13,9 +13,16 @@ The bundled two-layer GraphSAGE checkpoint ranks suspect nodes for analyst revie
 
 ## Evaluation
 
-Run `python backend/scripts/evaluate_model.py` to regenerate `backend/benchmarks/model_evaluation.json`. The artifact reports confusion matrices, precision, recall, F1, accuracy, Brier score and two fixed transparent baselines.
+Run `python backend/scripts/evaluate_model.py` to regenerate `backend/benchmarks/model_evaluation.json`. The artifact reports confusion matrices, precision, recall, F1, accuracy, Brier score and two fixed transparent baselines. It separately exposes the 87-node fixed stratified transductive holdout rather than presenting only full-corpus metrics.
 
-The positive label means “connected to at least two case nodes.” It is a structural proxy generated from the same graph—not an independently adjudicated criminal-outcome label. Consequently, the reproduced validation score demonstrates checkpoint reproducibility, not real-world generalization.
+The positive label means “connected to at least two case nodes.” It is a structural proxy generated from the same graph—not an independently adjudicated criminal-outcome label. Graph topology and normalized degree are also model inputs, so the feature/target dependency is explicitly rated **high**. Consequently, the reproduced validation score demonstrates checkpoint reproducibility for this structural rule, not real-world crime prediction or generalization.
+
+## Claim passport
+
+- Field accuracy: **not established**.
+- Permitted claim: the supplied architecture and reproduced checkpoint can prioritize structural repeat-subject proxies on the supplied graph.
+- Prohibited claims: prediction of guilt, intent, identity, real-world crime, fairness, or performance across jurisdictions and time.
+- Operational release gate: independently labelled, temporally separated, legally approved evaluation with subgroup, calibration, false-positive, and drift analysis.
 
 ## Required safeguards
 

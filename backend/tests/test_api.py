@@ -38,6 +38,16 @@ def test_local_login_rejects_arbitrary_credentials():
     assert accepted.json()["security_mode"] in {"demo", "configured"}
 
 
+def test_public_showcase_disables_credential_login(monkeypatch):
+    monkeypatch.setattr(main_module.settings, "public_demo", True)
+    response = client.post("/api/auth/login", json={"email": "supervisor@sentinel.local", "password": "sentinel-supervisor"})
+    assert response.status_code == 403
+    assert "no credentials are required" in response.json()["detail"]
+    stale = client.get("/api/auth/me", headers={"Authorization": "Bearer expired-private-session"})
+    assert stale.status_code == 200
+    assert stale.json() == {"email": "public-demo@sentinel.local", "role": "demo", "mode": "synthetic-public-demo"}
+
+
 def test_graph_search_finds_real_dataset_entity():
     response = client.post("/api/graph/search", json={"query": "Deandre Allen"})
     assert response.status_code == 200
@@ -297,6 +307,58 @@ def test_suraksha_replay_and_ground_truth_are_complete_and_receipted():
     assert len(evaluation["receipt"]) == 64
 
 
+def test_suraksha_fusion_patterns_are_computed_and_source_provenanced():
+    assurance = client.get("/api/demo/suraksha/fusion-assurance").json()
+    assert assurance["summary"] == {
+        "checks_passed": 5,
+        "checks_total": 5,
+        "patterns_recovered": 5,
+        "patterns_expected": 5,
+        "edge_provenance_coverage": 100.0,
+        "source_channels": 6,
+    }
+    patterns = {item["id"]: item for item in assurance["patterns"]}
+    assert set(patterns) == {
+        "communication-burst",
+        "rapid-split-transfer",
+        "circular-fund-flow",
+        "cross-source-convergence",
+        "cross-channel-bridge",
+    }
+    assert patterns["cross-source-convergence"]["source_types"] == ["ANPR", "CDR", "SURVEILLANCE"]
+    assert set(patterns["circular-fund-flow"]["evidence_record_ids"]) >= {"TX-S-001", "TX-S-003", "TX-S-004"}
+    assert all(item["alternative"] and item["analyst_action"] and len(item["receipt"]) == 64 for item in patterns.values())
+    assert len(assurance["receipt"]) == 64
+
+
+def test_suraksha_temporal_emergence_reconstructs_network_growth():
+    emergence = client.get("/api/demo/suraksha/emergence").json()
+    snapshots = emergence["snapshots"]
+    assert snapshots[0]["date"] == "2026-08-17"
+    assert snapshots[-1]["cumulative_records"] == 32
+    assert snapshots[-1]["cumulative_nodes"] == 64
+    assert snapshots[-1]["cumulative_edges"] == 148
+    assert snapshots[-1]["patterns_detected"] == 5
+    assert any("circular-fund-flow" in snapshot["new_patterns"] for snapshot in snapshots)
+    assert len(emergence["receipt"]) == 64
+
+
+def test_suraksha_graph_edges_carry_record_level_provenance():
+    try:
+        assert client.post("/api/investigations/operation-suraksha/activate").status_code == 200
+        edges = client.get("/api/visualization/graph").json()["edges"]
+        assert len(edges) == 148
+        assert all(edge["evidence_record_ids"] and edge["evidence_hashes"] and edge["source_types"] for edge in edges)
+        assert all(all(len(value) == 64 for value in edge["evidence_hashes"]) for edge in edges)
+        assert {source for edge in edges for source in edge["source_types"]} == {"FIR", "CDR", "BANK", "ANPR", "SURVEILLANCE", "OSINT"}
+        subject = next(node for node in client.get("/api/visualization/graph").json()["nodes"] if node["name"] == "Subject A-17")
+        coordinator = next(node for node in client.get("/api/visualization/graph").json()["nodes"] if node["name"] == "Coordinator C-04")
+        path = client.get("/api/analysis/connection-path", params={"source_id": subject["id"], "target_id": coordinator["id"]}).json()
+        assert all(step["evidence_record_ids"] and step["source_types"] for step in path["steps"])
+    finally:
+        assert client.post("/api/investigations/city-shield/activate").status_code == 200
+
+
 def test_suraksha_identity_resolution_requires_a_human_safe_decision(monkeypatch, tmp_path):
     monkeypatch.setattr(suraksha, "DECISIONS_PATH", tmp_path / "resolution_decisions.json")
     candidate = client.get("/api/entity-resolution/candidates").json()["items"][0]
@@ -469,4 +531,8 @@ def test_model_evaluation_exposes_baselines_and_limitations():
     assert payload["dataset"]["suspects"] == 434
     assert payload["graphsage"]["metrics_on_full_supplied_graph"]["f1"] >= 0
     assert set(payload["fixed_baselines"]) == {"risk_score_at_least_70", "graph_degree_at_least_4"}
+    assert payload["graphsage"]["held_out_node_validation"]["samples"] == 87
+    assert payload["graphsage"]["held_out_node_validation"]["independent_outcome_labels"] is False
+    assert payload["claim_assurance"]["field_accuracy"] == "not-established"
+    assert payload["claim_assurance"]["feature_target_dependency"] == "high"
     assert any("not independently adjudicated" in item for item in payload["limitations"])

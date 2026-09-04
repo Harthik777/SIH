@@ -28,6 +28,11 @@ export interface GraphEdge {
   label: string
   confidence: number
   anomalous?: boolean
+  evidence_record_ids?: string[]
+  evidence_hashes?: string[]
+  source_types?: string[]
+  observed_at?: string
+  epistemic_status?: 'observed' | 'derived'
 }
 
 export interface AlertItem {
@@ -205,6 +210,10 @@ export interface TracePathStep {
   anomalous: boolean
   direction: 'forward' | 'reverse traversal'
   evidence_status: 'stored-observation'
+  evidence_record_ids: string[]
+  evidence_hashes: string[]
+  source_types: string[]
+  observed_at: string | null
 }
 
 export interface ConnectionPath {
@@ -301,6 +310,58 @@ export interface SurakshaEvaluation {
   receipt: string
 }
 
+export interface FusionPattern {
+  id: string
+  type: string
+  title: string
+  severity: Severity
+  confidence: number
+  evidence_status: 'derived-lead-from-recorded-observations'
+  source_types: string[]
+  evidence_record_ids: string[]
+  evidence_records: Array<{ id: string; source_type: string; sha256: string }>
+  time_start: string | null
+  time_end: string | null
+  explanation: string
+  alternative: string
+  analyst_action: string
+  method: string
+  receipt: string
+}
+
+export interface FusionAssurance {
+  classification: 'synthetic-acceptance-evaluation'
+  method: string
+  summary: {
+    checks_passed: number
+    checks_total: number
+    patterns_recovered: number
+    patterns_expected: number
+    edge_provenance_coverage: number
+    source_channels: number
+  }
+  checks: Array<{ id: string; label: string; passed: boolean; detail: string }>
+  patterns: FusionPattern[]
+  scope_note: string
+  receipt: string
+}
+
+export interface TemporalEmergence {
+  method: string
+  snapshots: Array<{
+    date: string
+    new_records: number
+    cumulative_records: number
+    cumulative_nodes: number
+    cumulative_edges: number
+    source_types_seen: string[]
+    patterns_detected: number
+    new_patterns: string[]
+  }>
+  guardrail: string
+  receipt: string
+}
+
 export interface IdentityCandidate {
   id: string
   left: GraphNode
@@ -380,8 +441,26 @@ export interface ModelEvaluation {
     threshold: number
     brier_score: number | null
     metrics_on_full_supplied_graph: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
+    held_out_node_validation: {
+      samples: number
+      positive_samples: number
+      split_seed: number
+      split_type: string
+      metrics: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
+      brier_score: number | null
+      independent_outcome_labels: boolean
+    }
   }
   fixed_baselines: Record<string, { precision: number; recall: number; f1: number; accuracy: number }>
+  claim_assurance: {
+    field_accuracy: string
+    operational_use: string
+    feature_target_dependency: string
+    dependency_explanation: string
+    permitted_claim: string
+    prohibited_claims: string[]
+    release_gate: string
+  }
   limitations: string[]
 }
 

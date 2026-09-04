@@ -93,7 +93,7 @@ export function TraceLab({ graph, investigationId, onSelect }: { graph: GraphDat
             <div className="trace-path-summary"><div><small>HOPS</small><strong>{path.hops}</strong></div><div><small>COMPOUND CONFIDENCE</small><strong>{path.path_confidence?.toFixed(1)}%</strong></div><div><small>METHOD</small><strong>{path.method}</strong></div></div>
             <div className="trace-steps">{path.steps.map((step, index) => <div className="trace-step" key={step.edge_id}>
               <button onClick={() => onSelect(step.from)}><i className={step.from.type}/><span>{step.from.name}<small>{step.from.type}</small></span></button>
-              <div><span>{step.relationship}</span><i/><small>{step.confidence}% · {step.direction}</small></div>
+              <div><span>{step.relationship}</span><i/><small>{step.confidence}% · {step.direction}</small>{step.source_types?.length > 0 && <small className="trace-step-source">{step.source_types.join(' + ')} · {step.evidence_record_ids.slice(0, 2).join(', ')}</small>}</div>
               <button onClick={() => onSelect(step.to)}><i className={step.to.type}/><span>{step.to.name}<small>{step.to.type}</small></span></button>
               <em>{String(index + 1).padStart(2, '0')}</em>
             </div>)}</div>

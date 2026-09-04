@@ -14,6 +14,7 @@ from uuid import uuid4
 from .audit_log import append_audit_event
 from .config import get_settings
 from .crime_pipeline import build_multisource_graph
+from .fusion_intelligence import fusion_validation, temporal_emergence
 from .models import GraphPayload
 from .trace_engine import connection_path
 
@@ -123,6 +124,16 @@ def evaluation() -> dict[str, Any]:
         "scope_note": "Scenario acceptance checks on synthetic ground truth; not an independent real-world accuracy claim.",
     }
     return {**result, "receipt": _canonical_receipt(result)}
+
+
+def fusion_assurance() -> dict[str, Any]:
+    """Run source-record pattern detection against the declared synthetic truth."""
+    return fusion_validation(load_suraksha_records(), ground_truth())
+
+
+def emergence() -> dict[str, Any]:
+    """Reconstruct how the evidence graph and review signals emerge over time."""
+    return temporal_emergence(load_suraksha_records())
 
 
 def replay() -> dict[str, Any]:

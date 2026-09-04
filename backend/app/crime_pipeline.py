@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import json
 import re
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -41,6 +42,11 @@ def _truthy(value: Any) -> bool:
 def _stable_id(prefix: str, value: str) -> str:
     digest = hashlib.sha1(value.encode("utf-8"), usedforsecurity=False).hexdigest()[:12]
     return f"{prefix}_{digest}"
+
+
+def _record_digest(record: dict[str, str]) -> str:
+    encoded = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _risk_for_record(record: dict[str, str]) -> int:
@@ -134,7 +140,20 @@ def build_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
         )
 
         def link(target_id: str, label: str, confidence: int = 97, anomalous: bool = False) -> None:
-            edges.append(GraphEdge(id=f"edge_{len(edges)+1}", source=case_id, target=target_id, label=label, confidence=confidence, anomalous=anomalous))
+            edges.append(
+                GraphEdge(
+                    id=f"edge_{len(edges)+1}",
+                    source=case_id,
+                    target=target_id,
+                    label=label,
+                    confidence=confidence,
+                    anomalous=anomalous,
+                    evidence_record_ids=[case_number],
+                    evidence_hashes=[_record_digest(record)],
+                    source_types=["FIR"],
+                    observed_at=record.get("date") or None,
+                )
+            )
 
         suspect = record.get("suspect_name", "").strip()
         if suspect:
@@ -149,7 +168,20 @@ def build_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
             plate = record.get("vehicle_plate", "").strip()
             if plate:  # Deliberately scoped: fixes the supplied prototype's undefined plate bug.
                 vehicle_id = add_node("vehicle", plate, plate, "vehicle", min(95, suspect_risk + 2), community, description=f"Vehicle associated with {suspect}.", tags=["registered-vehicle"])
-                edges.append(GraphEdge(id=f"edge_{len(edges)+1}", source=suspect_id, target=vehicle_id, label="DRIVES_VEHICLE", confidence=94, anomalous=suspect_cases[suspect] > 1))
+                edges.append(
+                    GraphEdge(
+                        id=f"edge_{len(edges)+1}",
+                        source=suspect_id,
+                        target=vehicle_id,
+                        label="DRIVES_VEHICLE",
+                        confidence=94,
+                        anomalous=suspect_cases[suspect] > 1,
+                        evidence_record_ids=[case_number],
+                        evidence_hashes=[_record_digest(record)],
+                        source_types=["FIR"],
+                        observed_at=record.get("date") or None,
+                    )
+                )
 
         crime_id = add_node("crime", primary_type, primary_type.title(), "crime", CRIME_RISK.get(primary_type.upper(), 45), community, description=f"Ontology crime type present in {sum(1 for item in records if item.get('primary_type') == primary_type)} incidents.")
         link(crime_id, "HAS_CRIME_TYPE", 99, risk >= 88)
@@ -227,10 +259,26 @@ def build_multisource_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
     date_aliases = ("date", "timestamp", "datetime", "event_time", "call_time", "transaction_time")
     type_aliases = ("primary_type", "event_type", "record_type", "transaction_type", "call_type", "category", "source_type")
 
+    def source_type(record: dict[str, str], identifier: str) -> str:
+        if _first_value(record, ("call_id",)):
+            return "CDR"
+        if _first_value(record, ("transaction_id",)):
+            return "BANK"
+        if identifier.startswith("FIR-"):
+            return "FIR"
+        if identifier.startswith("ANPR-"):
+            return "ANPR"
+        if identifier.startswith("SURV-"):
+            return "SURVEILLANCE"
+        if _first_value(record, ("post_id",)):
+            return "OSINT"
+        return "OTHER"
+
     for index, record in enumerate(records, 1):
         identifier = (_first_value(record, id_aliases) or ("row", str(index)))[1]
         event_kind = (_first_value(record, type_aliases) or ("type", "source record"))[1]
         occurred_at = (_first_value(record, date_aliases) or ("date", ""))[1] or None
+        record_source = source_type(record, identifier)
         risk = _generic_risk(record)
         community = int(hashlib.sha1(identifier.encode("utf-8"), usedforsecurity=False).hexdigest()[:4], 16) % 8 + 1
         event_id = _stable_id("record", identifier)
@@ -244,7 +292,7 @@ def build_multisource_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
             community=community,
             description=" · ".join(description_fields) or "Structured source record",
             lastSeen=occurred_at,
-            tags=["source-observation", "generic-schema"],
+            tags=["source-observation", "generic-schema", f"source:{record_source.casefold()}"],
         )
         created: dict[str, str] = {}
         for entity_type, aliases, relation, prefix in GENERIC_FIELDS:
@@ -289,6 +337,10 @@ def build_multisource_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
                     label=relation,
                     confidence=90,
                     anomalous=False if entity_type == "protected_person" else repeat_count > 2 or risk >= 80,
+                    evidence_record_ids=[identifier],
+                    evidence_hashes=[_record_digest(record)],
+                    source_types=[record_source],
+                    observed_at=occurred_at,
                 )
             )
             created[field] = node_id
@@ -299,7 +351,20 @@ def build_multisource_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
         destination_account = created.get("destination_account") or created.get("receiver_account") or created.get("beneficiary_account")
         for source, target, relation in ((source_phone, destination_phone, "CALLED"), (source_account, destination_account, "TRANSFERRED_TO")):
             if source and target and source != target:
-                edges.append(GraphEdge(id=f"edge_{len(edges)+1}", source=source, target=target, label=relation, confidence=96, anomalous=risk >= 80))
+                edges.append(
+                    GraphEdge(
+                        id=f"edge_{len(edges)+1}",
+                        source=source,
+                        target=target,
+                        label=relation,
+                        confidence=96,
+                        anomalous=risk >= 80,
+                        evidence_record_ids=[identifier],
+                        evidence_hashes=[_record_digest(record)],
+                        source_types=[record_source],
+                        observed_at=occurred_at,
+                    )
+                )
 
     return GraphPayload(nodes=list(nodes.values()), edges=edges)
 

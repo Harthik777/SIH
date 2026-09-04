@@ -15,7 +15,7 @@
 4. Run `npm run build`.
 5. Start with `npm run dev` and open `http://localhost:5173`.
 6. Select **Fusion replay**, click **Reset**, then **Start guided demo**.
-7. Confirm 14/14 entities, 6/6 relations, hidden path `YES`, false merges `0`.
+7. Confirm 14/14 entities, 6/6 relations, five of five computed patterns, 100% edge provenance, hidden path `YES`, and false merges `0`.
 8. Confirm protected identities are masked and the risk policy says prohibited.
 9. Select **Verify chain** and confirm `VALID`.
 10. Turn off network access, refresh the app, repeat the replay, TRACE path, graph view, analytics, and PDF export.
@@ -26,7 +26,7 @@
 powershell -ExecutionPolicy Bypass -File scripts/verify_release.ps1
 ```
 
-Expected result: backend and frontend tests, production build, dependency checks, flagship ground truth, role enforcement, audit verification, model evaluation, and scale-result presence all pass.
+Expected result: backend and frontend tests, production build, dependency checks, flagship ground truth, fusion-pattern assurance, record-level provenance, role enforcement, audit verification, model claim passport, and scale-result presence all pass. GitHub CI additionally runs the real PostgreSQL/Neo4j isolation test.
 
 ## Private-pilot rehearsal
 

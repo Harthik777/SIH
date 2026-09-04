@@ -15,6 +15,8 @@ This is implemented as **TRACE** (Transparent Relationship, Assumption, Corrobor
 3. **Counterfactual stress tests:** an analyst can see how correcting an identity, arrest state, domestic marker, weapon descriptor, or duplicate location assignment changes the encoded risk score.
 4. **Epistemic boundary:** observations, derived leads, hypotheses, and human decisions are never presented as the same thing.
 5. **Reproducibility receipt:** canonical result payloads receive SHA-256 digests so reruns can be compared precisely.
+6. **Record-level provenance:** every relationship names its source channel, record identifier, observation time, and canonical record digest.
+7. **Claim-aware ML:** a machine-readable model passport separates a reproducible structural-proxy result from unestablished field accuracy.
 
 The companion **Operation Suraksha Fusion Room** turns those principles into a judge-visible exercise: six synthetic evidence channels, a known hidden path, declared acceptance truth, and an ambiguous-name case that the system must refuse to auto-merge.
 
@@ -60,7 +62,7 @@ The evaluation path uses React, FastAPI, deterministic Python graph analysis, lo
 
 1. Open **Fusion replay** and activate Operation Suraksha.
 2. Reveal the FIR, CDR, banking, ANPR, surveillance, and OSINT stages.
-3. Show the 12/12 and 5/5 acceptance scorecard, hidden-path result, and receipts.
+3. Show the 14/14 entity, 6/6 relationship, and 5/5 computed-pattern acceptance results plus 100% edge provenance.
 4. Demonstrate why the Kavya Rao / K. Rao candidate stays separate despite name similarity.
 5. Open **TRACE Lab** and show the exact stored-edge path from Subject A-17 to Coordinator C-04.
 6. Connect the proof back to the entity dossier, temporal motifs, and counterfactual checks.

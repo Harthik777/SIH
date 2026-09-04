@@ -1,7 +1,7 @@
 # Sentinel submission evaluation
 
 **Problem statement:** SIH 26189 — AI-Powered Criminal Network Analysis System  
-**Evaluation date:** 04 September 2026  
+**Evaluation date:** 05 September 2026
 **Claim boundary:** Competition prototype evaluated on supplied and synthetic data; not an operational police certification.
 
 ## Acceptance results
@@ -9,6 +9,8 @@
 | Evaluation | Result | Reproducible proof |
 | --- | ---: | --- |
 | Six-source flagship ingestion | 32/32 records | `operation_suraksha.json` and Fusion Room source counts |
+| Cross-source pattern acceptance | 5/5 patterns | Runtime detectors for call burst, repeat transfers, account cycle, time/location convergence, and bridge entity |
+| Relationship provenance | 148/148 edges | Source record ID, channel, timestamp, and canonical SHA-256 record digest |
 | Required entity checkpoints | 14/14 | Separate ground-truth fixture and `/api/demo/suraksha/evaluation` |
 | Required relationship types | 6/6 | Same endpoint; includes protected-person linkage |
 | Hidden Subject A-17 → Coordinator C-04 path | Recovered | TRACE stored-edge path with SHA-256 receipt |
@@ -16,10 +18,11 @@
 | Protected-person risk/ML exposure | 0 | Two nodes fixed at risk 0 and removed before model feature generation |
 | Tamper-evident audit | Valid | `/api/audit/verify` recalculates sequence, previous hash, and content hash |
 | Larger supplied corpus | 500 records | 1,530 nodes and 2,127 relationships |
-| Backend verification | 29 tests passed | `pytest -q` |
+| Backend verification | 33 tests passed, 1 integration test conditionally skipped locally | `pytest -q`; hybrid test runs with service containers in CI |
 | Frontend verification | 4 tests passed | `npm test` |
 | Private access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
-| Model evaluation | Reproducible | confusion matrix, Brier score, two fixed baselines and explicit proxy-label limitation |
+| Model evaluation | Reproducible, claim-bounded | 87-node transductive holdout, confusion matrices, Brier scores, two fixed baselines, high feature/target dependency warning |
+| Hybrid persistence | CI-verified | Real PostgreSQL and Neo4j round trip with two case-isolated graphs |
 
 The deployable NumPy GraphSAGE forward pass was compared across all 434 suspect nodes with the PyTorch Geometric implementation: maximum probability delta `0.0`, with identical classifications. The lightweight artifact enables real checkpoint inference on the free web image while the training notebook and full ML runtime remain available locally.
 

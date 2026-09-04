@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-04T17:38:55.266503+00:00",
+  "generated_at": "2026-09-04T18:19:41.778724+00:00",
   "classification": "supplied-corpus-model-evaluation",
   "environment": {
     "python": "3.11.9",
@@ -26,7 +26,25 @@
       "accuracy": 1.0
     },
     "brier_score": 0.096398,
-    "reported_reproduced_validation_f1": 1.0
+    "reported_reproduced_validation_f1": 1.0,
+    "held_out_node_validation": {
+      "samples": 87,
+      "positive_samples": 12,
+      "split_seed": 42,
+      "split_type": "fixed stratified transductive node holdout",
+      "metrics": {
+        "true_positive": 12,
+        "true_negative": 75,
+        "false_positive": 0,
+        "false_negative": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0
+      },
+      "brier_score": 0.098747,
+      "independent_outcome_labels": false
+    }
   },
   "fixed_baselines": {
     "risk_score_at_least_70": {
@@ -51,6 +69,19 @@
     }
   },
   "decision_policy": "Model outputs are prioritization signals; no automated identity, guilt, arrest, or enforcement decision is permitted.",
+  "claim_assurance": {
+    "field_accuracy": "not-established",
+    "operational_use": "prohibited-without-independent-validation",
+    "feature_target_dependency": "high",
+    "dependency_explanation": "The target is defined from case-neighbor topology while graph topology and normalized degree are model inputs. The metric demonstrates reproducibility of a structural rule, not prediction of criminal conduct.",
+    "permitted_claim": "The supplied GraphSAGE notebook and checkpoint are reproducible for structural suspect prioritization on the supplied demonstration graph.",
+    "prohibited_claims": [
+      "real-world crime prediction accuracy",
+      "proof of identity, intent, culpability, or guilt",
+      "fairness or generalization across populations, jurisdictions, or time"
+    ],
+    "release_gate": "Evaluate on independently labelled, temporally separated, legally approved data with subgroup and drift analysis before any operational pilot."
+  },
   "limitations": [
     "The labels are structural proxy labels derived from the same graph, not independently adjudicated criminal outcomes.",
     "The supplied corpus is demonstration data and does not establish field generalization, fairness, or causal validity.",
