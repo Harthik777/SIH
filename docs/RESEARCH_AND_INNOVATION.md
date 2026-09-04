@@ -18,6 +18,7 @@ This is implemented as **TRACE** (Transparent Relationship, Assumption, Corrobor
 6. **Record-level provenance:** every relationship names its source channel, record identifier, observation time, and canonical record digest.
 7. **Claim-aware ML:** a machine-readable model passport separates a reproducible structural-proxy result from unestablished field accuracy.
 8. **Externally witnessed integrity:** nonce-blinded audit-head checkpoints can be timestamped through OpenTimestamps and Bitcoin without publishing evidence or personal data.
+9. **Open intelligence exchange:** a privacy-aware STIX 2.1 case bundle uses native objects where semantics match and explicit Sentinel extensions where criminal-domain entities have no native STIX representation. It can enter free MISP, OpenCTI, or TAXII-based workflows without making any hosted service mandatory.
 
 The companion **Operation Suraksha Fusion Room** turns those principles into a judge-visible exercise: six synthetic evidence channels, a known hidden path, declared acceptance truth, and an ambiguous-name case that the system must refuse to auto-merge.
 
@@ -33,6 +34,8 @@ This design is inspired by work on inherently explainable temporal graph models 
 | [IBM AML-Data](https://github.com/IBM/AML-Data) | Labeled, fully synthetic transaction data representing legitimate and laundering behavior | Recommended optional benchmark for transaction-pattern evaluation. Repository code is Apache-2.0; the dataset is CDLA-Sharing-1.0 and must retain its license |
 | [Indic TrOCR](https://github.com/iitb-research-code/indic-trocr) | Apache-2.0 transformer OCR for handwritten documents in Indian languages | Strong optional extension for scanned FIR intake; it needs a separately tested model/runtime profile before being called integrated |
 | [OpenTimestamps client](https://github.com/opentimestamps/opentimestamps-client) | Standard timestamp proofs aggregate opaque commitments into Bitcoin; initial calendar receipts remain pending and can be upgraded later | Sentinel implements this as an optional audit-chain-head witness, with nonce blinding, explicit pending/confirmed states, and no evidence or personal data on-chain |
+| [OASIS STIX 2.1](https://docs.oasis-open.org/cti/stix/v2.1/stix-v2.1.html) and [TAXII 2.1](https://docs.oasis-open.org/cti/taxii/v2.1/taxii-v2.1.html) | Open standards for structured threat-intelligence representation and HTTPS exchange | Sentinel emits a parsed STIX 2.1 bundle with stable case-scoped references, graph receipt, evidence provenance, and explicit custom objects where STIX has no honest criminal-domain equivalent |
+| [MISP](https://www.misp-project.org/) and [OpenCTI](https://docs.opencti.io/latest/deployment/integrations/) | Free/open-source intelligence sharing and STIX/TAXII integration ecosystems | Sentinel exports a STIX 2.1 case bundle, preserves observed/derived status and provenance, and suppresses protected-person risk and identifying attributes; a receiving platform remains optional |
 
 The comparison is based on public repository documentation, not on claims that Sentinel has copied or absorbed those codebases.
 
@@ -59,7 +62,7 @@ Sentinel ships the user-supplied artifacts plus the explicitly fictional Operati
 
 ## Why the build remains free
 
-The evaluation path uses React, FastAPI, deterministic Python graph analysis, local JSON investigation snapshots, the supplied ontology, and CPU GraphSAGE inference. No paid API key, hosted LLM, or managed database is required. Internet access is optional: OpenTimestamps calendars and a Bitcoin-header endpoint strengthen audit witnessing when online, while core casework remains available offline. Docker services are deployment adapters, not prerequisites for the one-machine demonstration.
+The evaluation path uses React, FastAPI, deterministic Python graph analysis, local JSON investigation snapshots, the supplied ontology, and CPU GraphSAGE inference. No paid API key, hosted LLM, or managed database is required. Internet access is optional: OpenTimestamps calendars and a Bitcoin-header endpoint strengthen audit witnessing when online, while STIX 2.1 provides a no-lock-in route to self-hosted MISP/OpenCTI/TAXII collaboration. Core casework remains available offline. Docker services are deployment adapters, not prerequisites for the one-machine demonstration.
 
 ## Judge-facing novelty demonstration
 

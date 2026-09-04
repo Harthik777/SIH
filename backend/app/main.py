@@ -35,6 +35,7 @@ from .network_intelligence import risk_trend, structure_metrics, timeline as act
 from .operations import operations_monitor, rate_limiter
 from .security import Principal, authenticate, get_principal, issue_token, require_roles, resolve_principal
 from .state import make_pipeline, pipeline_events, pipelines, remove_upload_file, run_pipeline, uploads
+from .stix_export import build_stix_bundle
 from .suraksha import emergence as suraksha_emergence, evaluation as suraksha_evaluation, fusion_assurance as suraksha_fusion_assurance
 from .protected_persons import masked_profiles, reveal_profile
 from .readiness import BENCHMARK_PATH, MODEL_EVALUATION_PATH, system_readiness
@@ -830,6 +831,24 @@ def export_graphml(principal: Annotated[Principal, Depends(require_roles("analys
         )
     parts.extend(["</graph>", "</graphml>"])
     return Response("\n".join(parts), media_type="application/graphml+xml", headers={"Content-Disposition": "attachment; filename=sentinel_graph.graphml"})
+
+
+@app.get("/api/export/graph/stix", tags=["export"])
+def export_stix(principal: Annotated[Principal, Depends(require_roles("analyst"))]):
+    """Export a privacy-aware STIX 2.1 bundle for MISP/OpenCTI/TAXII workflows."""
+    investigation = active_investigation()
+    bundle = build_stix_bundle(graph(), investigation)
+    append_audit_event(
+        "evidence.export",
+        "stix-2.1",
+        {"investigation": investigation["id"], "objects": len(bundle["objects"])},
+        actor=principal.email,
+    )
+    return Response(
+        json.dumps(bundle, ensure_ascii=False, indent=2),
+        media_type="application/stix+json;version=2.1",
+        headers={"Content-Disposition": "attachment; filename=sentinel_case_stix21.json"},
+    )
 
 
 def _xml(value: str) -> str:

@@ -21,7 +21,7 @@ Sentinel implements the complete judge-visible workflow: ingest evidence, verify
 | Extract vehicles | FIR plates and vehicle fields become `vehicle` nodes | Search a supplied plate such as `IL-4258-DT` |
 | Extract phone numbers | CDR aliases (`caller_number`, `callee_number`, `msisdn`, etc.) become `phone` nodes | Upload a CDR-shaped CSV; Phone appears in graph legend and nodes |
 | Extract organizations | Organization/company/employer/merchant fields become `organization` nodes | Upload a transaction/OSINT-shaped CSV and filter Organization |
-| Build relationship maps | Ontology predicates plus generic observed-source predicates produce directed graph edges | Graph explorer, relationship dossier, JSON and GraphML exports |
+| Build relationship maps | Ontology predicates plus generic observed-source predicates produce directed graph edges | Graph explorer, relationship dossier, JSON, GraphML, and privacy-aware STIX 2.1 exports |
 | Identify influential individuals | Person-only degree, sampled Brandes betweenness, reach, and composite influence | Advanced analytics → Influential people → switch ranking method |
 | Detect suspicious patterns | Runtime call-burst, repeated-transfer, directed-cycle, time/location convergence, bridge-entity, repeat-subject/location, temporal motif, anomaly-link, and GraphSAGE detectors | Fusion assurance matrix and emergence timeline, Risk panel, Alert center, GraphSAGE claim passport, TRACE Lab |
 | Discover hidden links | Cross-source bridge discovery, feature-overlap candidate ranking with every signal exposed, and stored-edge path proving for known connectivity | Operation Suraksha recovers the declared Subject A-17 → Coordinator C-04 path; TRACE exposes every hop and receipt |
@@ -64,7 +64,7 @@ The geographic view uses a deterministic operational display grid because the su
 
 ## Verified acceptance checks
 
-- Backend: 33 local API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and claim-bounded evaluation, source-derived analytics, TRACE proof outputs, five-pattern fusion assurance, temporal emergence, per-edge record provenance, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, exports, and credential rejection.
+- Backend: 35 local API/unit tests covering graph loading, FIR parsing, generic CDR/financial mapping, active investigation switching, GraphSAGE behavior and claim-bounded evaluation, source-derived analytics, TRACE proof outputs, five-pattern fusion assurance, temporal emergence, per-edge record provenance, Operation Suraksha acceptance truth, protected-person policy, audit tamper detection, role separation, operational probes, guarded ingestion, safe reset, provenance, STIX interoperability, exports, and credential rejection.
 - Hybrid integration: a dedicated CI job starts real PostgreSQL and Neo4j services, persists two graphs with colliding local IDs, retrieves them independently, checks record digests, and deletes them.
 - Frontend: 5 component tests covering the command center and case-first navigation, private login, explainable briefing, interactive Fusion Room, and persistent workspace preferences.
 - Production frontend build passes under React 19.2 and supported Vite 6.4.

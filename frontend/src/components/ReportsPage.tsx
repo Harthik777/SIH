@@ -1,10 +1,11 @@
-import { Braces, CalendarRange, CheckCircle2, Download, FileSpreadsheet, FileText, Globe2, Network, ShieldCheck, Sparkles } from 'lucide-react'
+import { Braces, CalendarRange, CheckCircle2, Download, FileSpreadsheet, FileText, Globe2, Network, RadioTower, ShieldCheck, Sparkles } from 'lucide-react'
 import { api } from '../api'
 
 const formats = [
   { title: 'Investigation report', description: 'Executive summary, findings, evidence, and visualizations.', format: 'PDF', icon: FileText, href: '/api/export/report/pdf', filename: 'sentinel_investigation_report.pdf' },
   { title: 'Knowledge graph', description: 'All visible nodes, relationships, and entity metadata.', format: 'JSON', icon: Braces, href: api.exportUrl('json'), filename: 'sentinel_graph.json' },
   { title: 'Graph exchange', description: 'Interoperable graph structure for Gephi and network tools.', format: 'GRAPHML', icon: Network, href: api.exportUrl('graphml'), filename: 'sentinel_graph.graphml' },
+  { title: 'Intelligence exchange', description: 'Privacy-aware STIX 2.1 case bundle for free MISP, OpenCTI, and TAXII workflows.', format: 'STIX 2.1', icon: RadioTower, href: api.exportUrl('stix'), filename: 'sentinel_case_stix21.json' },
   { title: 'Risk assessment', description: 'Entity-level scores, factors, confidence, and disposition.', format: 'CSV', icon: FileSpreadsheet, href: '/api/export/data/csv', filename: 'sentinel_risk.csv' },
   { title: 'Geospatial evidence', description: 'Operational-area concentration with proxy coordinates explicitly labelled.', format: 'GEOJSON', icon: Globe2, href: '/api/export/geojson', filename: 'sentinel_locations.geojson' },
   { title: 'Timeline archive', description: 'Chronological event and relationship activity log.', format: 'CSV', icon: CalendarRange, href: '/api/export/data/csv?dataset=timeline', filename: 'sentinel_timeline.csv' },

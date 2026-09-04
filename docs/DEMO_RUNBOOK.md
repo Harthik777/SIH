@@ -46,7 +46,8 @@ Sentinel fuses disconnected evidence into proof-carrying investigative leads: ev
    - Show source fingerprinting, measured output counts, active-investigation switching, and the fact that a processed graph drives all downstream screens.
 
 7. **Close with operational output (15 seconds)**
-   - Open **Reports & exports** and show JSON, GraphML, CSV, GeoJSON, and PDF outputs.
+   - Open **Reports & exports** and show JSON, GraphML, privacy-aware STIX 2.1, CSV, GeoJSON, and PDF outputs.
+   - Say: “The same case can move into a free MISP, OpenCTI, or TAXII workflow without a paid API or vendor lock-in; protected-person identifying and risk attributes remain suppressed.”
    - Close with: “Sentinel does not merely output an answer; it outputs an answer an investigator can challenge.”
 
 ## Architecture answer

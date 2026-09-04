@@ -98,7 +98,7 @@ Copy `.env.example` to `.env`, replace both passwords and the signing secret, th
 - Transparent case↔subject link hypotheses whose supporting feature overlaps are inspectable
 - TRACE proof-carrying intelligence with observed connection paths, temporal motifs, counterfactual risk checks, explicit alternative explanations, and deterministic SHA-256 receipts
 - Conservative entity resolution that surfaces supporting and conflicting signals, prevents name-only auto-merges, and reserves identity decisions for humans
-- JSON, GraphML, CSV, GeoJSON, and generated PDF exports
+- JSON, GraphML, STIX 2.1, CSV, GeoJSON, and generated PDF exports
 - Persistent case workflow showing the active case, investigation stage, open-signal count, and one next-best action on every route
 - Projector-readable hierarchy, stronger contrast, 40–44 px controls, keyboard search, skip navigation, labelled filters, browser history, and responsive layouts verified at a 430 px viewport
 - Dark/light themes, recoverable lazy-module failures, and locally persisted workspace preferences
@@ -164,7 +164,7 @@ This build is mapped directly to the Ministry of Home Affairs / NCRB problem sta
 | --- | --- |
 | Process multiple sources | Working FIR/CDR/banking/ANPR/surveillance/OSINT synthetic exercise, CSV and JSON schema mapping, FIR text extraction, XML profiling, RDF/TTL semantic intake, SHA-256 provenance |
 | Extract people, places, vehicles, phones, and organizations | Typed ontology nodes for `person`, `protected_person`, `location`, `vehicle`, `phone`, `organization`, `account`, `event`, and `crime` |
-| Build relationship maps | Active Cytoscape graph plus JSON/GraphML export and ontology-labelled predicates |
+| Build relationship maps | Active Cytoscape graph plus JSON/GraphML/STIX 2.1 export and ontology-labelled predicates |
 | Identify key individuals | Person-filtered degree, sampled betweenness, neighborhood reach, and composite influence rankings |
 | Detect suspicious patterns | Transparent risk rules, time-window convergence, account-cycle replay, repeat-entity and concentration alerts, GraphSAGE inference, and explainable link candidates |
 | Give actionable investigator insight | Evidence-backed brief, alternatives, provenance, timeline, concentration grid, source links, and required human next actions |
@@ -219,7 +219,7 @@ The API includes all requested route groups:
 - `/api/analysis/anomalies`, `/api/analysis/risk-scores`, `/api/analysis/link-predictions`, `/api/analysis/link-candidates`, `/api/analysis/briefing`, `/api/analysis/explanations/{id}`
 - `/api/analysis/connection-path`, `/api/analysis/motifs`, `/api/analysis/counterfactual/{id}`, `/api/analysis/trace/{id}`
 - `/api/visualization/graph`, `/api/visualization/timeline`, `/api/visualization/locations`, `/api/visualization/heatmap`
-- `/api/export/graph/json`, `/api/export/graph/graphml`, `/api/export/report/pdf`, `/api/export/data/csv`, `/api/export/geojson`
+- `/api/export/graph/json`, `/api/export/graph/graphml`, `/api/export/graph/stix`, `/api/export/report/pdf`, `/api/export/data/csv`, `/api/export/geojson`
 - `/api/data/quality`, `/api/provenance/manifest`
 - `/api/config`, `/api/models`, `/api/models/graphsage/status`, `/api/ontology/summary`, `/api/auth/login`, `/api/auth/me`
 - `/api/health/live`, `/api/health/ready`, `/api/system/metrics`, `/metrics`

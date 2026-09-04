@@ -71,6 +71,38 @@ def test_graphml_export_is_downloadable():
     assert "attachment" in response.headers["content-disposition"]
 
 
+def test_stix_export_is_interoperable_receipted_and_privacy_aware():
+    try:
+        assert client.post("/api/investigations/operation-suraksha/activate").status_code == 200
+        graph = client.get("/api/visualization/graph").json()
+        response = client.get("/api/export/graph/stix")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("application/stix+json")
+        assert "attachment" in response.headers["content-disposition"]
+
+        bundle = response.json()
+        assert bundle["type"] == "bundle"
+        assert bundle["id"].startswith("bundle--")
+        objects = bundle["objects"]
+        object_ids = {item["id"] for item in objects}
+        relationships = [item for item in objects if item["type"] == "relationship"]
+        assert len(relationships) == len(graph["edges"])
+        assert all(item["spec_version"] == "2.1" for item in objects)
+        assert all(item["source_ref"] in object_ids and item["target_ref"] in object_ids for item in relationships)
+        assert all(item["x_sentinel_epistemic_status"] in {"observed", "derived"} for item in relationships)
+
+        protected = [item for item in objects if item.get("x_sentinel_protected")]
+        assert len(protected) == 2
+        assert all(item["type"] == "identity" and item["identity_class"] == "individual" for item in protected)
+        assert all("x_sentinel_risk_indicator" not in item and "x_sentinel_aliases" not in item for item in protected)
+        assert "Nandini" not in response.text and "Asha" not in response.text
+        report = next(item for item in objects if item["type"] == "report")
+        assert report["x_sentinel_classification"] == "synthetic-evaluation-only"
+        assert len(report["x_sentinel_graph_sha256"]) == 64
+    finally:
+        assert client.post("/api/investigations/city-shield/activate").status_code == 200
+
+
 def test_fir_without_plate_never_creates_vehicle():
     report = (
         "On 03/05/2026 at approximately 21:30 hours, officers documented Case Number JC100339. "
