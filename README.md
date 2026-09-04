@@ -51,7 +51,7 @@ The frontend has a deterministic fallback dataset, so it still renders if the AP
 
 ## Deploy the complete website
 
-The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures the live, synthetic-only competition deployment at [sentinel-sih-26189-harthik.onrender.com](https://sentinel-sih-26189-harthik.onrender.com); public mode keeps every analysis module available but blocks arbitrary uploads and credential login. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures the live, login-protected competition deployment at [sentinel-sih-26189-harthik.onrender.com](https://sentinel-sih-26189-harthik.onrender.com). The complete ingestion and analysis workflow is available through the public URL after authentication; generated passwords stay in Render environment secrets and are never committed. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Run the complete stack
 

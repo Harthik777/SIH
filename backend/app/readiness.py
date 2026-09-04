@@ -95,7 +95,7 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
         _check("audit-chain", "Audit-chain integrity", bool(audit["valid"]), f"{audit['entries']} chained entries"),
         _check("local-storage", "Writable local evidence store", os.access(storage_parent, os.W_OK), str(storage_parent)),
         _check("durable-persistence", "Configured persistence profile", persistence_ok, persistence_detail),
-        _check("private-access", "Private authentication and role controls", True, "JWT sessions with viewer, analyst and supervisor authorization; public showcase remains synthetic"),
+        _check("private-access", "Authentication and role controls", True, "JWT sessions enforce viewer, analyst and supervisor authorization; public-demo restrictions remain configurable"),
         _check("operational-controls", "Operational controls", True, "rate limit, request IDs, liveness/readiness and Prometheus-compatible metrics"),
         _check("hybrid-runtime", "Hybrid online/offline runtime", True, "Core analysis requires no external API; optional internet services are isolated adapters"),
         _check("external-witness", "Privacy-preserving Bitcoin timestamp path", anchoring["submission_enabled"], f"{anchoring['provider']}; optional audit-head checkpoints only", required=False),

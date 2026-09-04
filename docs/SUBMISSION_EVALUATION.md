@@ -51,7 +51,7 @@ Entity-resolution precision is intentionally reported as **not applicable**: Sen
 | Tamper evidence | External process | Product dependent | Product dependent | Local SHA-256 chain plus optional blinded OpenTimestamps/Bitcoin checkpoint |
 | Works without paid APIs | Yes | Product dependent | Usually no | Yes |
 | Natural-language presentation | Manual | Limited | Strong | Deterministic evidence-backed briefing, no hallucinated facts |
-| Public demonstration safety | Depends on operator | Depends on product | Data-egress risk | Synthetic-only deployment mode blocks uploads |
+| Public demonstration safety | Depends on operator | Depends on product | Data-egress risk | Login-protected web workspace; competition host restricted to synthetic/redacted inputs and explicit ephemeral-storage warning |
 
 This comparison describes architectural categories, not audited claims about named competitors.
 

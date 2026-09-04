@@ -2,17 +2,18 @@
 
 Sentinel ships as one Docker web service: the first stage builds the React application, and the final Python image serves both the compiled site and FastAPI under one origin.
 
-## Public competition edition (Render)
+## Authenticated public web edition (Render)
 
-The repository includes `render.yaml` for a free Singapore-region Docker web service. The public configuration sets `SENTINEL_PUBLIC_DEMO=true`, which keeps every analysis screen available while rejecting arbitrary uploads and disabling credential login. It also enables the optional OpenTimestamps adapter for audit-head checkpoints. All bundled evidence is synthetic.
+The repository includes `render.yaml` for a free Singapore-region Docker web service. The public URL runs the complete application with `SENTINEL_PUBLIC_DEMO=false` and `SENTINEL_AUTH_MODE=required`: authenticated analysts can upload evidence, execute the pipeline, activate investigations, and use every analysis and export module. Optional OpenTimestamps audit-head checkpoints remain available to supervisors. The bundled demonstration evidence is synthetic.
 
 1. Push the repository to GitHub.
 2. Open Render → **New → Blueprint** and connect `Harthik777/SIH`.
 3. Confirm the `sentinel-sih-26189-harthik` free web service and deploy.
-4. Wait for `/api/health` to pass, then open the assigned `onrender.com` URL.
-5. Test `/?section=fusion&stage=1` and `/api/system/readiness`.
+4. In the service's **Environment** page, reveal or rotate `SENTINEL_ANALYST_PASSWORD` and `SENTINEL_SUPERVISOR_PASSWORD`. Keep them outside the repository and share the analyst credential with judges through an approved private channel.
+5. Wait for `/api/health` to report `auth_mode: required` and `public_demo: false`, then sign in at the assigned `onrender.com` URL.
+6. Upload a synthetic sample, run the pipeline, activate its investigation, and verify that the graph and reports switch to the new case.
 
-Render's free web service is appropriate for competition judging, but it sleeps after inactivity and uses an ephemeral filesystem. The bundled investigation is rebuilt after restart; new audit events, demo decisions, checkpoints and proofs are not durable on the free tier. Download the proof bundle immediately after submission. Public instances permit at most three timestamp submission attempts to prevent calendar abuse. Do not upload real evidence to a public competition deployment.
+Render's free web service is appropriate for competition judging, but it sleeps after inactivity and uses an ephemeral filesystem. Its Blueprint caps individual uploads at 25 MB to protect the free CPU/RAM envelope. Uploaded files, generated investigations, audit events, decisions, checkpoints and proofs can disappear after a restart or redeploy; bundled investigations rebuild automatically. Download important reports and proof bundles immediately. Authentication protects access but does not turn the free host into an accredited evidence store. Use only synthetic or legally shareable redacted data on this competition service—never operational FIR/CDR or survivor information.
 
 OpenTimestamps calendar acceptance is initially shown as **calendar pending**. Bitcoin aggregation commonly takes hours; use **Check confirmation** later to upgrade the proof. The UI reports **Bitcoin confirmed** only after the upgraded proof matches a Bitcoin block header from the configured Esplora service.
 
@@ -48,7 +49,7 @@ Invoke-RestMethod http://localhost:8000/api/health
 Invoke-RestMethod http://localhost:8000/api/system/readiness
 ```
 
-## Private full-ingestion edition
+## Durable private/agency-pilot edition
 
 Run `docker compose up --build` only on a trusted network after copying `.env.example` to `.env` and replacing its credentials. The private profile sets `SENTINEL_AUTH_MODE=required`; the React application displays a login screen and every non-health API request requires a signed session. Analyst actions and supervisor-only actions are enforced server-side.
 

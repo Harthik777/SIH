@@ -10,11 +10,11 @@ services:
     autoDeployTrigger: commit
     envVars:
       - key: SENTINEL_ENVIRONMENT
-        value: production-public-demo
+        value: production-authenticated-web
       - key: SENTINEL_PUBLIC_DEMO
-        value: "true"
+        value: "false"
       - key: SENTINEL_AUTH_MODE
-        value: optional
+        value: required
       - key: SENTINEL_CONNECTIVITY_MODE
         value: hybrid
       - key: SENTINEL_AUDIT_ANCHOR_MODE
@@ -23,6 +23,8 @@ services:
         value: "3"
       - key: SENTINEL_RATE_LIMIT_PER_MINUTE
         value: "240"
+      - key: SENTINEL_MAX_UPLOAD_MB
+        value: "25"
       - key: SENTINEL_ALLOWED_ORIGINS
         value: https://sentinel-sih-26189-harthik.onrender.com
       - key: SENTINEL_SECRET_KEY

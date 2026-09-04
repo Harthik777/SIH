@@ -82,7 +82,7 @@ export function UploadPage({ onInvestigationActivated }: { onInvestigationActiva
           <div className="panel-header"><div><span className="eyebrow">01 · SOURCE DATA</span><h2>Upload evidence</h2></div><span className="supported-formats">CSV · JSON · TXT · XML · RDF/TTL</span></div>
           {!selected ? (
             <div className={`drop-zone ${dragging ? 'dragging' : ''}`} onDragOver={(event) => { event.preventDefault(); setDragging(true) }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); pick(event.dataTransfer.files) }}>
-              <span className="upload-icon"><UploadCloud size={25}/></span><h3>Drop investigation files here</h3><p>or select them from your computer</p><button className="secondary-button" onClick={() => inputRef.current?.click()}>Browse files</button><small>Maximum file size 500 MB · SHA-256 provenance recorded</small>
+              <span className="upload-icon"><UploadCloud size={25}/></span><h3>Drop investigation files here</h3><p>or select them from your computer</p><button className="secondary-button" onClick={() => inputRef.current?.click()}>Browse files</button><small>Deployment upload limit enforced · SHA-256 provenance recorded</small>
               <input ref={inputRef} hidden type="file" accept=".csv,.json,.txt,.xml,.ttl,.rdf" onChange={(event) => pick(event.target.files)}/>
             </div>
           ) : (

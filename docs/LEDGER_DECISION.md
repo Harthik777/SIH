@@ -34,7 +34,7 @@ For maximum trust minimization, export the checkpoint and `.ots` proof and verif
 ## Operational controls
 
 - Online anchoring is configuration-gated with `SENTINEL_CONNECTIVITY_MODE=hybrid` and `SENTINEL_AUDIT_ANCHOR_MODE=opentimestamps`.
-- The public synthetic showcase permits at most three submission attempts per service instance to prevent calendar abuse.
+- The authenticated public web deployment reserves checkpoint submission for the supervisor role; no evidence or personal data is sent to the calendars.
 - Private deployments require a supervisor-authorized session for checkpoint submission and refresh.
 - Calendar URLs are configured server-side; proof upgrades accept only HTTPS OpenTimestamps calendar domains.
 - A failed or unavailable external service never blocks local analysis, audit verification, reporting, or export.

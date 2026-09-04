@@ -11,7 +11,7 @@
   </defs>
   <rect width="1280" height="720" fill="url(#bg)"/>
   <text x="54" y="58" class="k">SENTINEL / SIH 26189</text><text x="54" y="91" class="h" font-size="28">Privacy-first criminal network intelligence — one deployable web service</text>
-  <text x="54" y="116" class="t">Hybrid online/offline · authenticated private pilot · synthetic public showcase · no paid API dependency</text>
+  <text x="54" y="116" class="t">Hybrid online/offline · authenticated public web app · durable private pilot · no paid API dependency</text>
 
   <path class="line" d="M267 340H351"/><path class="line" d="M567 340H651"/><path class="line" d="M867 340H951"/>
   <path class="dash" d="M180 558V615H1085V558"/>

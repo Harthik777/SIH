@@ -4,7 +4,7 @@
 **Organization:** Ministry of Home Affairs  
 **Department:** NCRB, Women Safety Division  
 **Build date:** 05 September 2026
-**Operating target:** free hybrid online/offline single-machine pilot plus a synthetic-only public web edition
+**Operating target:** free hybrid online/offline single-machine pilot plus a login-protected public competition workspace
 
 ## Evaluation summary
 
@@ -75,4 +75,4 @@ The geographic view uses a deterministic operational display grid because the su
 
 ## Deployment boundary
 
-The complete React/FastAPI product runs from one public Docker web service for the internal round. Its public mode is synthetic-only and blocks uploads; free-host filesystem changes are ephemeral. The private single-machine profile is an operational pilot with authenticated roles, durable state, PostgreSQL/Neo4j persistence, backup and monitoring—not a certified law-enforcement system. Agency deployment still requires identity-provider integration, approved malware scanning, key management, retention policy, jurisdiction-specific privacy controls, independent model validation, and red-team/security accreditation.
+The complete React/FastAPI product runs from one authenticated public Docker web service for the internal round, including upload and pipeline execution. Because the free-host filesystem is ephemeral, that service is for synthetic or legally shareable redacted competition inputs only. The private single-machine profile adds durable state, PostgreSQL/Neo4j persistence, backup and monitoring—not certification. Agency deployment still requires identity-provider integration, approved malware scanning, key management, retention policy, jurisdiction-specific privacy controls, independent model validation, and red-team/security accreditation.

@@ -4,7 +4,7 @@
 
 | Profile | Purpose | Authentication | Evidence intake | Persistence | Connectivity |
 | --- | --- | --- | --- | --- | --- |
-| Public Render | Competition evaluation | Synthetic demo identity | Disabled | Ephemeral runtime; bundled fixtures rebuild | Hybrid; bounded OpenTimestamps demo |
+| Public Render | Authenticated competition evaluation | Analyst/supervisor JWT sessions | Enabled for synthetic or legally shareable redacted files | Ephemeral runtime; bundled fixtures rebuild | Hybrid; supervisor-only OpenTimestamps |
 | Local development | Trusted developer machine | Optional | Enabled | Atomic local files | Hybrid-capable; anchoring disabled unless configured |
 | Private Docker | Single-machine investigative pilot | Required JWT; analyst/supervisor roles | Enabled | Docker volume + PostgreSQL + case-scoped Neo4j | Hybrid by default; offline mode supported |
 
@@ -29,7 +29,7 @@ python -c "from backend.app.security import hash_password; import getpass; print
 - Viewer: authenticated read access.
 - Analyst: evidence intake, pipeline execution, case activation, alert acknowledgement, reviewed identity dispositions and exports.
 - Supervisor: analyst privileges plus protected-person reveal, configuration changes and investigation deletion.
-- Public demo: supervisor-shaped interaction only over bundled fictional records; arbitrary uploads remain blocked.
+- Authenticated public web: analyst and supervisor roles are enforced; uploads are enabled, but the free ephemeral host is restricted operationally to synthetic or legally shareable redacted files.
 
 Protected-person reveal still requires a reason and authorization reference, and the reason is hashed before entering the audit event.
 
