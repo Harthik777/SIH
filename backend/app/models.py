@@ -5,7 +5,17 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 
-EntityType = Literal["person", "organization", "location", "account", "phone", "event", "vehicle", "crime"]
+EntityType = Literal[
+    "person",
+    "protected_person",
+    "organization",
+    "location",
+    "account",
+    "phone",
+    "event",
+    "vehicle",
+    "crime",
+]
 Severity = Literal["critical", "high", "medium", "low"]
 
 
@@ -105,3 +115,8 @@ class LoginRequest(BaseModel):
 class ResolutionDecisionRequest(BaseModel):
     decision: Literal["keep-separate", "escalate"]
     rationale: str = Field(min_length=3, max_length=500)
+
+
+class ProtectedRevealRequest(BaseModel):
+    reason: str = Field(min_length=10, max_length=500)
+    authorization_reference: str = Field(min_length=3, max_length=120)

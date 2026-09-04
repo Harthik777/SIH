@@ -8,6 +8,7 @@ import io
 import json
 import math
 import re
+import os
 from collections import Counter, defaultdict
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -18,18 +19,22 @@ import jwt
 from fastapi import BackgroundTasks, FastAPI, File, Header, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
+from .audit_log import append_audit_event, audit_entries, verify_audit_chain
 from .config import get_settings
 from .graphsage import analyze_active_graph, link_prediction_summary, load_supplied_link_predictions, model_status
 from .intelligence import data_quality, investigation_briefing, provenance_manifest, transparent_link_candidates
 from .investigation_store import activate_investigation, active_investigation, delete_investigation, get_active_graph, list_investigations
-from .models import ConfigUpdate, GraphPayload, LoginRequest, PipelineRequest, ResolutionDecisionRequest, SearchRequest, UploadRecord
+from .models import ConfigUpdate, GraphPayload, LoginRequest, PipelineRequest, ProtectedRevealRequest, ResolutionDecisionRequest, SearchRequest, UploadRecord
 from .network_intelligence import centrality as calculate_centrality
 from .network_intelligence import degree_distribution, generated_alerts, locations as active_locations
 from .network_intelligence import risk_trend, structure_metrics, timeline as active_timeline
 from .state import make_pipeline, pipeline_events, pipelines, remove_upload_file, run_pipeline, uploads
 from .suraksha import evaluation as suraksha_evaluation
-from .suraksha import record_resolution_decision, replay as suraksha_replay, resolution_candidates
+from .protected_persons import masked_profiles, reveal_profile
+from .readiness import BENCHMARK_PATH, system_readiness
+from .suraksha import record_resolution_decision, replay as suraksha_replay, reset_demo as reset_suraksha_demo, resolution_candidates
 from .trace_engine import connection_path, counterfactual, entity_trace, temporal_motifs
 
 
@@ -94,7 +99,7 @@ def node_or_404(node_id: str):
 @app.get("/api/health", tags=["system"])
 def health():
     payload = graph()
-    return {"status": "ok", "environment": settings.environment, "security_mode": "demo" if settings.secret_key == "replace-this-secret-in-production" else "configured", "entities": len(payload.nodes), "relationships": len(payload.edges)}
+    return {"status": "ok", "environment": settings.environment, "public_demo": settings.public_demo, "security_mode": "demo" if settings.secret_key == "replace-this-secret-in-production" else "configured", "entities": len(payload.nodes), "relationships": len(payload.edges)}
 
 
 @app.post("/api/auth/login", tags=["authentication"])
@@ -121,6 +126,8 @@ def current_user(authorization: Annotated[str | None, Header()] = None):
 
 @app.post("/api/upload", response_model=UploadRecord, tags=["data management"])
 async def upload_file(file: Annotated[UploadFile, File()]):
+    if settings.public_demo:
+        raise HTTPException(status_code=403, detail="Uploads are disabled on the public synthetic showcase. Run Sentinel privately for evidence ingestion.")
     filename = Path(file.filename or "upload").name
     suffix = Path(filename).suffix.lower()
     if suffix not in {".csv", ".json", ".txt", ".xml", ".ttl", ".rdf"}:
@@ -138,6 +145,7 @@ async def upload_file(file: Annotated[UploadFile, File()]):
             output.write(chunk)
     record.size = total
     uploads[record.id] = record
+    append_audit_event("evidence.upload", record.id, {"filename": filename, "bytes": total}, actor=settings.analyst_email)
     return record
 
 
@@ -185,7 +193,9 @@ def active_investigation_detail():
 @app.post("/api/investigations/{investigation_id}/activate", tags=["investigations"])
 def set_active_investigation(investigation_id: str):
     try:
-        return activate_investigation(investigation_id)
+        result = activate_investigation(investigation_id)
+        append_audit_event("investigation.activate", investigation_id, {"name": result["name"]}, actor=settings.analyst_email)
+        return result
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Investigation not found") from exc
 
@@ -215,6 +225,51 @@ def decide_identity_resolution(candidate_id: str, request: ResolutionDecisionReq
         return record_resolution_decision(candidate_id, request.decision, request.rationale)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Identity candidate not found") from exc
+
+
+@app.post("/api/demo/suraksha/reset", tags=["flagship demonstration"])
+def reset_flagship_demo():
+    return reset_suraksha_demo()
+
+
+@app.get("/api/protected-persons", tags=["protected-person privacy"])
+def protected_people():
+    return {
+        "items": masked_profiles(),
+        "default": "masked",
+        "policy": "no-risk-or-influence-scoring",
+        "classification": "synthetic-demonstration-only",
+    }
+
+
+@app.post("/api/protected-persons/{profile_id}/reveal", tags=["protected-person privacy"])
+def reveal_protected_person(profile_id: str, request: ProtectedRevealRequest):
+    try:
+        return reveal_profile(profile_id, request.reason, request.authorization_reference, settings.analyst_email)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Protected person not found") from exc
+
+
+@app.get("/api/audit", tags=["tamper-evident audit"])
+def get_audit_entries(limit: int = Query(default=100, ge=1, le=1000)):
+    return {"items": audit_entries(limit), "verification": verify_audit_chain()}
+
+
+@app.get("/api/audit/verify", tags=["tamper-evident audit"])
+def verify_audit():
+    return verify_audit_chain()
+
+
+@app.get("/api/system/readiness", tags=["system"])
+def readiness():
+    return system_readiness(settings.public_demo)
+
+
+@app.get("/api/benchmarks/scale", tags=["evaluation"])
+def scale_benchmark():
+    if not BENCHMARK_PATH.exists():
+        raise HTTPException(status_code=404, detail="Scale benchmark has not been run")
+    return json.loads(BENCHMARK_PATH.read_text(encoding="utf-8"))
 
 
 @app.delete("/api/investigations/{investigation_id}", status_code=204, tags=["investigations"])
@@ -523,17 +578,20 @@ def acknowledge_alert(alert_id: str):
         raise HTTPException(status_code=404, detail="Alert not found")
     acknowledged_alerts.add(alert_id)
     alert.acknowledged = True
+    append_audit_event("alert.acknowledge", alert_id, {"title": alert.title}, actor=settings.analyst_email)
     return alert
 
 
 @app.get("/api/export/graph/json", tags=["export"])
 def export_json():
+    append_audit_event("evidence.export", "graph-json", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
     return Response(graph().model_dump_json(indent=2), media_type="application/json", headers={"Content-Disposition": "attachment; filename=sentinel_graph.json"})
 
 
 @app.get("/api/export/graph/graphml", tags=["export"])
 def export_graphml():
     payload = graph()
+    append_audit_event("evidence.export", "graphml", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
     parts = ['<?xml version="1.0" encoding="UTF-8"?>', '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">', '<graph id="sentinel" edgedefault="undirected">']
     for node in payload.nodes:
         parts.append(f'<node id="{node.id}"><data key="label">{_xml(node.name)}</data><data key="type">{node.type}</data><data key="risk">{node.risk}</data></node>')
@@ -549,6 +607,7 @@ def _xml(value: str) -> str:
 
 @app.get("/api/export/data/csv", tags=["export"])
 def export_csv(dataset: str = "risk"):
+    append_audit_event("evidence.export", f"csv-{dataset}", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
     output = io.StringIO()
     if dataset == "timeline":
         writer = csv.DictWriter(output, fieldnames=["id", "date", "time", "title", "description", "type", "severity", "risk", "case_id", "occurred_at", "entities"], extrasaction="ignore")
@@ -570,12 +629,14 @@ def export_csv(dataset: str = "risk"):
 
 @app.get("/api/export/geojson", tags=["export"])
 def export_geojson():
+    append_audit_event("evidence.export", "geojson", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
     features = [{"type": "Feature", "id": item["id"], "properties": {key: value for key, value in item.items() if key not in {"lat", "lng"}}, "geometry": {"type": "Point", "coordinates": [item["lng"], item["lat"]]}} for item in active_locations(graph())]
     return Response(json.dumps({"type": "FeatureCollection", "features": features}, indent=2), media_type="application/geo+json", headers={"Content-Disposition": "attachment; filename=sentinel_locations.geojson"})
 
 
 @app.get("/api/export/report/pdf", tags=["export"])
 def export_report_pdf():
+    append_audit_event("evidence.export", "report-pdf", {"investigation": active_investigation()["id"]}, actor=settings.analyst_email)
     from reportlab.lib.colors import HexColor
     from reportlab.lib.pagesizes import A4
     from reportlab.pdfgen.canvas import Canvas
@@ -699,3 +760,15 @@ def ontology_summary():
         "object_property_count": len(re.findall(r"rdf:type\s+owl:ObjectProperty", text)),
         "data_property_count": len(re.findall(r"rdf:type\s+owl:DatatypeProperty", text)),
     }
+
+
+# A production container serves the compiled React app from the same origin as
+# the API. Development keeps using Vite's proxy because this directory is absent.
+frontend_dist = Path(
+    os.getenv(
+        "SENTINEL_FRONTEND_DIST",
+        str(Path(__file__).resolve().parents[2] / "frontend" / "dist"),
+    )
+)
+if frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")

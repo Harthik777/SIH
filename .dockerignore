@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+**/__pycache__
+**/.pytest_cache
+**/node_modules
+**/dist
+backend/data/uploads/*
+backend/data/investigations/*
+output
+docs/assets/screenshots
+*.tmp
+*.log

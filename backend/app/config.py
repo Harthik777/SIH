@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     upload_dir: Path = Path(__file__).resolve().parent.parent / "data" / "uploads"
     max_upload_mb: int = 500
+    public_demo: bool = False
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="SENTINEL_", extra="ignore")

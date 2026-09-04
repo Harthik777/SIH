@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import suraksha
+from app import audit_log, suraksha
 from app.main import app
 from app.crime_pipeline import build_graph, load_crime_graph, parse_fir
 from app.graphsage import INPUT_FEATURES, analyze_graph, build_features
@@ -89,8 +89,8 @@ def test_graphsage_endpoint_reports_real_or_preview_mode_explicitly():
     assert payload["model"]["architecture"]["input_features"] == 7
     assert len(payload["items"]) == 3
     artifacts = payload["model"]["artifacts"]
-    if artifacts["checkpoint_available"] and artifacts["runtime_available"]:
-        assert payload["mode"] == "graphsage-inference"
+    if artifacts["checkpoint_available"] and (artifacts["runtime_available"] or artifacts["lightweight_runtime_available"]):
+        assert payload["mode"] in {"graphsage-inference", "graphsage-lightweight-inference"}
         assert all(isinstance(item["probability"], float) for item in payload["items"])
     else:
         assert payload["mode"] == "structural-feature-preview"
@@ -276,16 +276,16 @@ def test_suraksha_replay_and_ground_truth_are_complete_and_receipted():
     evaluation = client.get("/api/demo/suraksha/evaluation").json()
     assert replay["source_counts"] == {"ANPR": 4, "BANK": 7, "CDR": 10, "FIR": 6, "OSINT": 2, "SURVEILLANCE": 3}
     assert replay["records"] == 32
-    assert replay["nodes"] == 62
-    assert replay["edges"] == 146
+    assert replay["nodes"] == 64
+    assert replay["edges"] == 148
     assert len(replay["steps"]) == 6
     assert len(replay["receipt"]) == 64
     assert all(len(step["receipt"]) == 64 and step["evidence_ids"] for step in replay["steps"])
     assert evaluation["summary"] == {
-        "entities_recovered": 12,
-        "entities_expected": 12,
-        "relationships_recovered": 5,
-        "relationships_expected": 5,
+        "entities_recovered": 14,
+        "entities_expected": 14,
+        "relationships_recovered": 6,
+        "relationships_expected": 6,
         "hidden_path_recovered": True,
         "false_merges": 0,
         "processing_mode": "deterministic-local",
@@ -327,9 +327,12 @@ def test_suraksha_can_drive_the_full_workspace_without_overclaiming():
         model = client.get("/api/analytics/graphsage?limit=5").json()
         node_types = {node["type"] for node in graph["nodes"]}
 
-        assert len(graph["nodes"]) == 62
-        assert len(graph["edges"]) == 146
-        assert node_types >= {"person", "phone", "account", "organization", "vehicle", "location", "event"}
+        assert len(graph["nodes"]) == 64
+        assert len(graph["edges"]) == 148
+        assert node_types >= {"person", "protected_person", "phone", "account", "organization", "vehicle", "location", "event"}
+        protected = [node for node in graph["nodes"] if node["type"] == "protected_person"]
+        assert len(protected) == 2
+        assert all(node["risk"] == 0 and "risk-scoring-prohibited" in node["tags"] for node in protected)
         assert briefing["quality"]["quality_gate"] == "pass"
         assert briefing["model"]["status"] == "schema-review"
         assert model["mode"] == "schema-incompatible-preview"
@@ -338,3 +341,65 @@ def test_suraksha_can_drive_the_full_workspace_without_overclaiming():
         assert any("human" in item.lower() for item in briefing["guardrails"])
     finally:
         assert client.post("/api/investigations/city-shield/activate").status_code == 200
+
+
+def test_protected_people_are_masked_and_reveal_is_audited(monkeypatch, tmp_path):
+    monkeypatch.setattr(audit_log, "AUDIT_PATH", tmp_path / "audit_chain.jsonl")
+    response = client.get("/api/protected-persons")
+    assert response.status_code == 200
+    profiles = response.json()["items"]
+    assert profiles and all(item["status"] == "masked" and item["risk_scoring"] == "prohibited" for item in profiles)
+    assert all("Nandini" not in item["name"] and "Asha" not in item["name"] for item in profiles)
+
+    invalid = client.post(
+        f"/api/protected-persons/{profiles[0]['id']}/reveal",
+        json={"reason": "short", "authorization_reference": "D"},
+    )
+    assert invalid.status_code == 422
+    revealed = client.post(
+        f"/api/protected-persons/{profiles[0]['id']}/reveal",
+        json={"reason": "Authorized verification during synthetic demonstration", "authorization_reference": "DEMO-001"},
+    )
+    assert revealed.status_code == 200
+    assert revealed.json()["synthetic"] is True
+    assert len(revealed.json()["audit_hash"]) == 64
+    verified = client.get("/api/audit/verify").json()
+    assert verified["valid"] is True and verified["entries"] == 1
+
+
+def test_audit_chain_detects_tampering(monkeypatch, tmp_path):
+    audit_path = tmp_path / "audit_chain.jsonl"
+    monkeypatch.setattr(audit_log, "AUDIT_PATH", audit_path)
+    audit_log.append_audit_event("test.action", "A")
+    audit_log.append_audit_event("test.action", "B")
+    assert audit_log.verify_audit_chain()["valid"] is True
+    audit_path.write_text(audit_path.read_text(encoding="utf-8").replace('"target":"A"', '"target":"X"', 1), encoding="utf-8")
+    verification = audit_log.verify_audit_chain()
+    assert verification["valid"] is False
+    assert any(error["reason"] == "content hash mismatch" for error in verification["errors"])
+
+
+def test_reset_restores_flagship_stage_and_clears_identity_decision(monkeypatch, tmp_path):
+    monkeypatch.setattr(suraksha, "DECISIONS_PATH", tmp_path / "resolution_decisions.json")
+    monkeypatch.setattr(audit_log, "AUDIT_PATH", tmp_path / "audit_chain.jsonl")
+    candidate = client.get("/api/entity-resolution/candidates").json()["items"][0]
+    client.post(
+        f"/api/entity-resolution/{candidate['id']}/decision",
+        json={"decision": "keep-separate", "rationale": "Conflicting immutable identifiers require separation."},
+    )
+    reset = client.post("/api/demo/suraksha/reset")
+    assert reset.status_code == 200
+    assert reset.json()["stage"] == 1
+    assert reset.json()["cleared_identity_decisions"] == 1
+    assert client.get("/api/entity-resolution/candidates").json()["items"][0]["status"] == "pending-review"
+
+
+def test_readiness_and_scale_evidence_are_machine_readable():
+    readiness = client.get("/api/system/readiness").json()
+    assert readiness["ready"] is True
+    assert readiness["offline_capable"] is True
+    assert readiness["external_services_required"] is False
+    benchmark = client.get("/api/benchmarks/scale").json()
+    assert [run["records"] for run in benchmark["runs"]] == [10_000, 100_000]
+    assert all(run["graph_build_seconds"] > 0 and run["peak_python_memory_mib"] > 0 for run in benchmark["runs"])
+    assert benchmark["entity_resolution_safety"]["false_merge_rate"] == 0

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { ArrowRight, Check, CheckCircle2, Database, Eye, Fingerprint, GitMerge, Layers3, Play, Radio, Route, ShieldCheck, TriangleAlert, X } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, Database, Eye, Fingerprint, GitMerge, KeyRound, Layers3, LockKeyhole, Play, Radio, RefreshCcw, Route, ShieldCheck, TriangleAlert, X } from 'lucide-react'
 import { api } from '../api'
-import type { IdentityCandidate, SurakshaEvaluation, SurakshaReplay } from '../types'
+import type { AuditVerification, IdentityCandidate, ProtectedProfile, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness } from '../types'
 
 const shortReceipt = (value?: string | null) => value ? `${value.slice(0, 12)}…${value.slice(-8)}` : 'pending'
 
@@ -9,21 +9,39 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
   const [replay, setReplay] = useState<SurakshaReplay | null>(null)
   const [evaluation, setEvaluation] = useState<SurakshaEvaluation | null>(null)
   const [candidates, setCandidates] = useState<IdentityCandidate[]>([])
-  const [selectedStep, setSelectedStep] = useState(1)
+  const requestedStage = Number(new URLSearchParams(window.location.search).get('stage') || 1)
+  const privacyFocus = new URLSearchParams(window.location.search).get('focus') === 'privacy'
+  const [selectedStep, setSelectedStep] = useState(Number.isFinite(requestedStage) ? Math.min(6, Math.max(1, requestedStage)) : 1)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [loadError, setLoadError] = useState('')
+  const [protectedPeople, setProtectedPeople] = useState<ProtectedProfile[]>([])
+  const [revealedProfile, setRevealedProfile] = useState<ProtectedProfile | null>(null)
+  const [revealReason, setRevealReason] = useState('Verify protected contact details for authorized synthetic case review')
+  const [authorizationReference, setAuthorizationReference] = useState('DEMO-AUTH-001')
+  const [audit, setAudit] = useState<AuditVerification | null>(null)
+  const [readiness, setReadiness] = useState<SystemReadiness | null>(null)
+  const [benchmark, setBenchmark] = useState<ScaleBenchmark | null>(null)
 
   const load = async () => {
     try {
-      const [nextReplay, nextEvaluation, nextCandidates] = await Promise.all([api.getSurakshaReplay(), api.getSurakshaEvaluation(), api.getIdentityCandidates()])
-      setReplay(nextReplay); setEvaluation(nextEvaluation); setCandidates(nextCandidates); setLoadError('')
+      const [nextReplay, nextEvaluation, nextCandidates, nextProtected, nextAudit, nextReadiness, nextBenchmark] = await Promise.all([
+        api.getSurakshaReplay(), api.getSurakshaEvaluation(), api.getIdentityCandidates(), api.getProtectedPeople(),
+        api.getAuditVerification(), api.getReadiness(), api.getScaleBenchmark().catch(() => null),
+      ])
+      setReplay(nextReplay); setEvaluation(nextEvaluation); setCandidates(nextCandidates); setProtectedPeople(nextProtected)
+      setAudit(nextAudit); setReadiness(nextReadiness); setBenchmark(nextBenchmark); setLoadError('')
     } catch {
       setLoadError('The local evidence service is unavailable. Start the backend and retry.')
     }
   }
 
   useEffect(() => { void load() }, [])
+  useEffect(() => {
+    if (window.location.hash === '#privacy-controls' && protectedPeople.length) {
+      document.getElementById('privacy-controls')?.scrollIntoView({ behavior: 'auto', block: 'start' })
+    }
+  }, [protectedPeople])
 
   const activate = async () => {
     setBusy(true)
@@ -53,15 +71,53 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
     }
   }
 
+  const startGuidedDemo = () => {
+    setSelectedStep(1)
+    setRevealedProfile(null)
+    setMessage('Guided demonstration ready at stage one.')
+    document.querySelector('.replay-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const resetDemo = async () => {
+    setBusy(true)
+    try {
+      await api.resetSuraksha()
+      setSelectedStep(1); setRevealedProfile(null)
+      await load()
+      setMessage('Operation Suraksha reset: decisions cleared, evidence unchanged, stage one restored.')
+    } catch {
+      setMessage('Reset failed. Check the evidence service and retry.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const reveal = async () => {
+    const profile = protectedPeople[0]
+    if (!profile) return
+    setBusy(true)
+    try {
+      const revealed = await api.revealProtectedPerson(profile.id, revealReason, authorizationReference)
+      setRevealedProfile(revealed)
+      const [nextAudit, nextReadiness] = await Promise.all([api.getAuditVerification(), api.getReadiness()])
+      setAudit(nextAudit); setReadiness(nextReadiness)
+      setMessage('Synthetic protected identity revealed for this response and recorded in the audit chain.')
+    } catch {
+      setMessage('Reveal requires a reason of at least 10 characters and an authorization reference.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const current = replay?.steps.find((step) => step.order === selectedStep) ?? replay?.steps[0]
   const candidate = candidates[0]
   const summary = evaluation?.summary
 
   return (
-    <div className="standard-page fusion-page">
+    <div className={`standard-page fusion-page ${privacyFocus ? 'focus-privacy' : ''}`}>
       <div className="page-heading fusion-heading">
         <div><span className="eyebrow">FLAGSHIP MULTI-SOURCE EXERCISE</span><h1>Operation Suraksha</h1><p>Watch disconnected evidence become a challengeable investigation graph—without cloud services or fabricated certainty.</p></div>
-        <div className="fusion-heading-actions"><span className="synthetic-pill"><ShieldCheck size={13}/> SYNTHETIC · SAFE DEMO</span>{activeId !== 'operation-suraksha' ? <button className="primary-button" disabled={busy} onClick={activate}><Play size={14}/>{busy ? 'Activating…' : 'Activate flagship case'}</button> : <span className="active-case-pill"><Check size={13}/> ACTIVE INVESTIGATION</span>}</div>
+        <div className="fusion-heading-actions"><span className="synthetic-pill"><ShieldCheck size={13}/> SYNTHETIC · SAFE DEMO</span><button className="secondary-button" disabled={busy} onClick={startGuidedDemo}><Play size={14}/> Start guided demo</button><button className="secondary-button" disabled={busy} onClick={() => void resetDemo()}><RefreshCcw size={14}/> Reset</button>{activeId !== 'operation-suraksha' ? <button className="primary-button" disabled={busy} onClick={activate}><Play size={14}/>{busy ? 'Activating…' : 'Activate flagship case'}</button> : <span className="active-case-pill"><Check size={13}/> ACTIVE INVESTIGATION</span>}</div>
       </div>
 
       {loadError && <section className="panel fusion-load-error" role="alert"><TriangleAlert size={18}/><span>{loadError}</span><button className="secondary-button" onClick={() => void load()}>Retry</button></section>}
@@ -91,6 +147,28 @@ export function FusionRoom({ activeId, onActivate, onOpenTrace }: { activeId?: s
             {candidate.decision ? <div className="identity-decided"><Check size={15}/><span><strong>{candidate.decision.effect}</strong><small>{candidate.decision.rationale}</small></span></div> : <div className="identity-actions"><button disabled={busy} onClick={() => void decide(candidate,'keep-separate')}><X size={14}/> Keep separate</button><button disabled={busy} onClick={() => void decide(candidate,'escalate')}><Eye size={14}/> Request verification</button></div>}
             <div className="trace-receipt"><Fingerprint size={14}/><span><small>CANDIDATE RECEIPT</small><code title={candidate.receipt}>{shortReceipt(candidate.receipt)}</code></span></div>
           </div>}
+        </section>
+      </div>
+
+      <div className="fusion-controls-grid" id="privacy-controls">
+        <section className="panel privacy-control-panel">
+          <div className="panel-header"><div><span className="eyebrow">PROTECTED-PERSON PRIVACY</span><h2>Masked by default. Never scored.</h2></div><LockKeyhole size={18}/></div>
+          <p className="privacy-intro">Protected people are separate entity types. Their graph labels stay pseudonymized, risk remains zero, and GraphSAGE never receives their nodes.</p>
+          {protectedPeople[0] && <div className="protected-profile">
+            <div className="masked-profile"><span><LockKeyhole size={18}/></span><div><small>{protectedPeople[0].graph_name}</small><strong>{revealedProfile?.name ?? protectedPeople[0].name}</strong><p>{revealedProfile?.phone ?? protectedPeople[0].phone} · {revealedProfile?.address ?? protectedPeople[0].address}</p></div><em>{revealedProfile ? 'EPHEMERAL REVEAL' : 'MASKED'}</em></div>
+            <label>Reason for access<textarea value={revealReason} onChange={(event) => setRevealReason(event.target.value)} /></label>
+            <label>Authorization reference<input value={authorizationReference} onChange={(event) => setAuthorizationReference(event.target.value)} /></label>
+            <div className="privacy-actions"><button className="secondary-button" disabled={busy || revealReason.trim().length < 10 || authorizationReference.trim().length < 3} onClick={() => void reveal()}><KeyRound size={14}/> Reveal synthetic identity</button>{revealedProfile && <button className="secondary-button" onClick={() => setRevealedProfile(null)}><LockKeyhole size={14}/> Mask again</button>}</div>
+            <small className="privacy-footnote">The reason is hashed in the audit event; protected details never enter graph exports.</small>
+          </div>}
+        </section>
+
+        <section className="panel assurance-control-panel">
+          <div className="panel-header"><div><span className="eyebrow">OFFLINE & INTEGRITY READINESS</span><h2>{readiness?.ready ? 'Ready for guided judging' : 'Readiness checks pending'}</h2></div>{readiness?.ready ? <CheckCircle2 className="pass-icon" size={19}/> : <TriangleAlert size={19}/>}</div>
+          <div className="readiness-summary"><div><small>OFFLINE</small><strong>{readiness?.offline_capable ? 'YES' : '—'}</strong></div><div><small>AUDIT CHAIN</small><strong>{audit?.valid ? 'VALID' : 'CHECK'}</strong></div><div><small>CHAINED EVENTS</small><strong>{audit?.entries ?? '—'}</strong></div><div><small>PAID APIS</small><strong>{readiness?.external_services_required ? 'REQUIRED' : 'NONE'}</strong></div></div>
+          <div className="readiness-checks">{readiness?.checks.map((check) => <span key={check.id} className={check.passed ? 'passed' : 'failed'}>{check.passed ? <Check size={12}/> : <X size={12}/>}<strong>{check.label}</strong><small>{check.detail}</small></span>)}</div>
+          {benchmark && <div className="benchmark-strip"><span><Database size={15}/><strong>SCALE PROOF</strong></span>{benchmark.runs.map((run) => <div key={run.records}><strong>{(run.records / 1000).toFixed(0)}K</strong><small>{run.graph_build_seconds}s build · {run.peak_python_memory_mib} MiB peak · {run.connection_path.p95_ms} ms path p95</small></div>)}</div>}
+          <div className="audit-head"><Fingerprint size={13}/><span><small>SHA-256 CHAIN HEAD</small><code title={audit?.head}>{shortReceipt(audit?.head)}</code></span><button className="secondary-button" onClick={() => void load()}>Verify chain</button></div>
         </section>
       </div>
 

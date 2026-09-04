@@ -2,15 +2,28 @@
 
 Sentinel is a full-stack investigation workspace that turns FIR narratives and structured crime records into an ontology-aligned knowledge graph. It combines a fast investigator-facing interface with a FastAPI service for ingestion, graph exploration, analytics, anomaly review, explanations, and export.
 
-The September 2026 build is designed as an award-ready, zero-cloud SIH demonstration: it runs on one machine, requires no paid API, fingerprints every evidence artifact, separates observations from hypotheses, and keeps a human analyst in control of every consequential interpretation.
+The September 2026 build is an offline-first SIH demonstration that also deploys as one full-stack website. It requires no paid AI API, fingerprints every evidence artifact, separates observations from hypotheses, protects survivor identities, and keeps a human analyst in control of every consequential interpretation.
 
 The repository opens with **Operation Suraksha**, a clearly labelled fictional Bengaluru-area exercise built to prove multi-source fusion safely:
 
 - 32 synthetic records across FIR, CDR, banking, ANPR, surveillance, and OSINT-shaped evidence
-- 62 typed entities and 146 source-linked relationships
-- 12/12 entity and 5/5 relationship acceptance checkpoints recovered
+- 64 typed entities and 148 source-linked relationships
+- 14/14 entity and 6/6 relationship acceptance checkpoints recovered
 - one hidden cross-source path, one circular account pattern, and one deliberate false-identity-merge trap
-- a six-stage judge replay with deterministic receipts and an explicit no-real-person boundary
+- two protected-person nodes that remain pseudonymized, fixed at risk 0, and excluded from model inference
+- a six-stage judge replay, reset/readiness controls, and deterministic receipts
+
+![Sentinel architecture](docs/assets/sentinel_architecture.svg)
+
+## Product screenshots
+
+| Operation Suraksha command center | Six-source Fusion Room |
+| --- | --- |
+| ![Operation Suraksha command center](docs/assets/screenshots/command-center.png) | ![Operation Suraksha Fusion Room](docs/assets/screenshots/fusion-room.png) |
+
+| Protected-person privacy and audit readiness | TRACE evidence path |
+| --- | --- |
+| ![Protected-person privacy and audit readiness](docs/assets/screenshots/privacy-audit.png) | ![TRACE proof-carrying path](docs/assets/screenshots/trace-lab.png) |
 
 The supplied Chicago crime corpus remains available as **Operation City Shield**, a larger validation investigation:
 
@@ -34,6 +47,10 @@ npm run dev
 Open [http://localhost:5173](http://localhost:5173). The API is at [http://localhost:8000](http://localhost:8000), and its interactive OpenAPI documentation is at [http://localhost:8000/docs](http://localhost:8000/docs).
 
 The frontend has a deterministic fallback dataset, so it still renders if the API is temporarily unavailable. Start just the UI with `npm run dev:frontend` or just the API with `npm run dev:api`.
+
+## Deploy the complete website
+
+The root `Dockerfile` compiles React and serves the entire UI plus FastAPI from one URL. `render.yaml` configures a free, synthetic-only internal-round deployment; the public mode keeps every analysis module available but blocks arbitrary uploads. See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Run the complete stack
 
@@ -62,6 +79,10 @@ Copy `.env.example` to `.env` before using non-demo credentials.
 - Automatic FIR narrative extraction plus explicit field mapping for CDR, transaction, surveillance, and OSINT-shaped CSV/JSON records
 - Durable local investigation snapshots with an active-investigation selector; a processed graph immediately drives every downstream view
 - Operation Suraksha Fusion Room: a six-stage cross-source replay, synthetic ground-truth scorecard, hidden-network reveal, and safe entity-resolution decision control
+- Protected-person privacy mode: separate entity type, masked default, zero criminal-risk score, ML/ranking exclusion, reasoned ephemeral reveal, and audit receipt
+- Append-only SHA-256 audit chain covering uploads, activations, identity decisions, protected reveals, alert acknowledgement, exports, and demo resets
+- Repeatable demonstration controls with stage-one start, safe reset, offline readiness, and integrity verification
+- Reproducible 10k/100k synthetic scale benchmark with build time, throughput, Python allocation peak, search latency, and path latency
 - Interactive Cytoscape knowledge graph with search, type filters, layouts, zoom, and entity dossiers
 - Source-derived timeline and police-beat concentration views with non-GPS proxy coordinates labelled explicitly
 - Active-graph risk scoring, anomaly triage, persisted-in-session alert acknowledgement, and natural-language explanations
@@ -102,7 +123,7 @@ The supplied [`GraphSAGE_Model.ipynb`](backend/models/GraphSAGE_Model.ipynb) is 
 
 The notebook saves `graphsage_model.pt`, but that checkpoint was not included in the supplied files. A fresh checkpoint has therefore been reproduced from the notebook architecture and matching source graph with a fixed split seed (`42`) and model seed (`1`). The selected epoch achieved validation F1 `1.0` on the notebook's 80/20 suspect split; provenance is recorded in `backend/models/graphsage_training.json`. This is a reproduction, not the notebook author's original serialized state.
 
-`/api/analytics/graphsage` performs real CPU inference whenever the checkpoint and optional PyTorch Geometric runtime are available. If either is absent, it returns a clearly labelled structural feature preview—never fabricated model probabilities. Checkpoints are loaded with `weights_only=True`.
+`/api/analytics/graphsage` performs real CPU inference whenever the checkpoint and PyTorch Geometric runtime are available. A compact NumPy weight artifact provides an equivalent two-layer mean-aggregator forward pass in the web container without shipping the heavyweight training stack. Out-of-training-schema graphs still return a clearly labelled structural preview—never fabricated model probabilities. PyTorch checkpoints are loaded with `weights_only=True`.
 
 ```powershell
 npm run install:ml
@@ -113,7 +134,7 @@ The notebook-reported validation score is retained as training metadata, not pre
 
 ## Evidence integrity and responsible analysis
 
-`/api/provenance/manifest` creates a local chain-of-custody manifest for the dataset, FIR corpus, ontology, model graph, training notebook, reproduced checkpoint, and supplied output. Each entry includes its complete SHA-256 digest, byte size, modification time, role, and a [W3C PROV-O](https://www.w3.org/TR/prov-o/) compatible type.
+`/api/provenance/manifest` creates a local chain-of-custody manifest for the dataset, FIR corpus, ontology, model graph, training notebook, reproduced checkpoint, and supplied output. Each entry includes its complete SHA-256 digest, byte size, modification time, role, and a [W3C PROV-O](https://www.w3.org/TR/prov-o/) compatible type. Separately, `/api/audit/verify` validates the append-only action chain by recomputing every content hash and previous-hash link.
 
 The platform maintains explicit epistemic boundaries:
 
@@ -132,7 +153,7 @@ This build is mapped directly to the Ministry of Home Affairs / NCRB problem sta
 | Required capability | Implemented evidence |
 | --- | --- |
 | Process multiple sources | Working FIR/CDR/banking/ANPR/surveillance/OSINT synthetic exercise, CSV and JSON schema mapping, FIR text extraction, XML profiling, RDF/TTL semantic intake, SHA-256 provenance |
-| Extract people, places, vehicles, phones, and organizations | Typed ontology nodes for `person`, `location`, `vehicle`, `phone`, `organization`, `account`, `event`, and `crime` |
+| Extract people, places, vehicles, phones, and organizations | Typed ontology nodes for `person`, `protected_person`, `location`, `vehicle`, `phone`, `organization`, `account`, `event`, and `crime` |
 | Build relationship maps | Active Cytoscape graph plus JSON/GraphML export and ontology-labelled predicates |
 | Identify key individuals | Person-filtered degree, sampled betweenness, neighborhood reach, and composite influence rankings |
 | Detect suspicious patterns | Transparent risk rules, time-window convergence, account-cycle replay, repeat-entity and concentration alerts, GraphSAGE inference, and explainable link candidates |
@@ -140,6 +161,7 @@ This build is mapped directly to the Ministry of Home Affairs / NCRB problem sta
 
 The detailed verification matrix is in [`docs/PS_26189_COMPLIANCE.md`](docs/PS_26189_COMPLIANCE.md).
 The GitHub, research-paper, and dataset landscape behind the differentiation strategy is in [`docs/RESEARCH_AND_INNOVATION.md`](docs/RESEARCH_AND_INNOVATION.md).
+Measured results and an honest category comparison are in [`docs/SUBMISSION_EVALUATION.md`](docs/SUBMISSION_EVALUATION.md); clean rehearsal steps are in [`docs/CLEAN_INSTALL_CHECKLIST.md`](docs/CLEAN_INSTALL_CHECKLIST.md).
 
 ## Important paths
 
@@ -157,6 +179,9 @@ backend/
 ├── app/network_intelligence.py Source-derived topology, timeline, map, and alerts
 ├── app/trace_engine.py        Proof paths, temporal motifs, counterfactuals, receipts
 ├── app/suraksha.py            Flagship replay, ground-truth evaluation, identity controls
+├── app/protected_persons.py    Masked vault and reasoned ephemeral disclosure
+├── app/audit_log.py            Append-only SHA-256 action chain
+├── app/readiness.py            Offline release gate and benchmark discovery
 ├── app/database.py          PostgreSQL models + Neo4j repository
 ├── app/celery_app.py        Redis/Celery task entry point
 ├── data/                    Synthetic flagship fixtures plus supplied CSV/FIR corpus
@@ -174,6 +199,8 @@ The API includes all requested route groups:
 - `/api/graph/nodes`, `/api/graph/edges`, `/api/graph/subgraph`, `/api/graph/search`, `/api/graph/metrics`
 - `/api/investigations`, `/api/investigations/active`, `/api/investigations/{id}/activate`
 - `/api/demo/suraksha/replay`, `/api/demo/suraksha/evaluation`
+- `/api/demo/suraksha/reset`, `/api/system/readiness`, `/api/benchmarks/scale`
+- `/api/protected-persons`, `/api/protected-persons/{id}/reveal`, `/api/audit`, `/api/audit/verify`
 - `/api/entity-resolution/candidates`, `/api/entity-resolution/{id}/decision`
 - `/api/analytics/centrality`, `/api/analytics/key-individuals`, `/api/analytics/community`, `/api/analytics/embeddings`, `/api/analytics/distribution`, `/api/analytics/trends`, `/api/analytics/graphsage`
 - `/api/analysis/anomalies`, `/api/analysis/risk-scores`, `/api/analysis/link-predictions`, `/api/analysis/link-candidates`, `/api/analysis/briefing`, `/api/analysis/explanations/{id}`
@@ -193,7 +220,7 @@ The UI uses React 19.2.8. Vite is pinned to the supported 6.4 security-maintenan
 npm test
 ```
 
-This runs the frontend component tests and backend API tests. A production frontend build can be checked separately with `npm run build`.
+This runs the frontend component tests and backend API tests. A production frontend build can be checked separately with `npm run build`, or run the complete release gate with `powershell -ExecutionPolicy Bypass -File scripts/verify_release.ps1`.
 
 ## Production notes
 

@@ -172,6 +172,7 @@ def build_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
 
 
 GENERIC_FIELDS: tuple[tuple[str, tuple[str, ...], str, str], ...] = (
+    ("protected_person", ("protected_person_id",), "HAS_PROTECTED_PERSON", "protected_person"),
     ("person", ("suspect_name", "person", "person_name", "subject", "caller_name", "sender_name", "account_holder"), "MENTIONS_PERSON", "person"),
     ("person", ("associate_name", "callee_name", "receiver_name", "beneficiary_name"), "MENTIONS_ASSOCIATE", "person"),
     ("organization", ("organization", "organisation", "company", "employer", "merchant"), "MENTIONS_ORGANIZATION", "organization"),
@@ -255,18 +256,41 @@ def build_multisource_graph(records: Iterable[dict[str, str]]) -> GraphPayload:
             node_id = _stable_id(prefix, normalized.casefold())
             repeat_count = frequencies[(entity_type, normalized.casefold())]
             if node_id not in nodes:
+                is_protected = entity_type == "protected_person"
+                protected_labels = {
+                    "PP-S-001": "Protected Person S-01",
+                    "PP-S-002": "Protected Person S-02",
+                }
                 nodes[node_id] = GraphNode(
                     id=node_id,
-                    name=normalized,
+                    name=protected_labels.get(normalized, "Protected Person") if is_protected else normalized,
                     type=entity_type,
-                    risk=min(95, risk + min(15, max(0, repeat_count - 1) * 3)),
+                    risk=0 if is_protected else min(95, risk + min(15, max(0, repeat_count - 1) * 3)),
                     confidence=90,
                     community=community,
-                    description=f"Observed in {repeat_count} source record(s) via field '{field}'.",
+                    description=(
+                        "Identity masked by policy. Protected people are excluded from criminal-risk "
+                        "scoring and influence ranking."
+                        if is_protected
+                        else f"Observed in {repeat_count} source record(s) via field '{field}'."
+                    ),
                     lastSeen=occurred_at,
-                    tags=["repeat-entity"] if repeat_count > 1 else ["source-observation"],
+                    tags=(
+                        ["privacy-protected", "risk-scoring-prohibited"]
+                        if is_protected
+                        else (["repeat-entity"] if repeat_count > 1 else ["source-observation"])
+                    ),
                 )
-            edges.append(GraphEdge(id=f"edge_{len(edges)+1}", source=event_id, target=node_id, label=relation, confidence=90, anomalous=repeat_count > 2 or risk >= 80))
+            edges.append(
+                GraphEdge(
+                    id=f"edge_{len(edges)+1}",
+                    source=event_id,
+                    target=node_id,
+                    label=relation,
+                    confidence=90,
+                    anomalous=False if entity_type == "protected_person" else repeat_count > 2 or risk >= 80,
+                )
+            )
             created[field] = node_id
 
         source_phone = created.get("caller_number") or created.get("source_phone")

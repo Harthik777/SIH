@@ -1,0 +1,22 @@
+{
+  "classification": "synthetic-protected-person-fixture",
+  "notice": "Every identity and identifier in this file is fictional. It exists only to demonstrate masking and accountable disclosure.",
+  "profiles": [
+    {
+      "id": "PP-S-001",
+      "graph_name": "Protected Person S-01",
+      "legal_name": "Nandini Rao",
+      "phone": "+91-90000-05501",
+      "address": "Synthetic Safe Address 01, Bengaluru",
+      "guardrail": "Protected-person data is excluded from risk scoring and influence ranking."
+    },
+    {
+      "id": "PP-S-002",
+      "graph_name": "Protected Person S-02",
+      "legal_name": "Asha Menon",
+      "phone": "+91-90000-05502",
+      "address": "Synthetic Safe Address 02, Bengaluru",
+      "guardrail": "Protected-person data is excluded from risk scoring and influence ranking."
+    }
+  ]
+}

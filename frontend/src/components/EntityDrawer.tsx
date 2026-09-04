@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Bookmark, Clock3, ExternalLink, Flag, MapPin, Network, Tag, X } from 'lucide-react'
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Bookmark, Clock3, ExternalLink, Flag, LockKeyhole, MapPin, Network, Tag, X } from 'lucide-react'
 import type { GraphData, GraphNode } from '../types'
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 export function EntityDrawer({ node, graph, onClose }: Props) {
   if (!node) return null
   const edges = graph.edges.filter((edge) => edge.source === node.id || edge.target === node.id)
+  const isProtected = node.type === 'protected_person'
   return (
     <aside className="entity-drawer">
       <div className="drawer-head">
@@ -20,10 +21,13 @@ export function EntityDrawer({ node, graph, onClose }: Props) {
       <div className="drawer-actions">
         <button><Flag size={14} /> Flag</button><button><Bookmark size={14} /> Save</button><button><ExternalLink size={14} /> Open dossier</button>
       </div>
-      <div className="risk-card">
+      {isProtected ? <div className="risk-card protected-risk-card">
+        <span className="protected-lock"><LockKeyhole size={22}/></span>
+        <div><small>PROTECTED-PERSON POLICY</small><strong>Risk scoring prohibited</strong><p>Masked by default · excluded from influence ranking and ML inference</p></div>
+      </div> : <div className="risk-card">
         <div className="risk-ring" style={{ '--risk': `${node.risk * 3.6}deg` } as React.CSSProperties}><span>{node.risk}</span></div>
         <div><small>COMPOSITE RISK</small><strong>{node.risk >= 80 ? 'Critical exposure' : node.risk >= 60 ? 'Elevated exposure' : 'Monitored'}</strong><p>Confidence {node.confidence}% · Updated 4m ago</p></div>
-      </div>
+      </div>}
       <div className="drawer-section">
         <h3>Intelligence summary</h3>
         <p>{node.description ?? `${node.name} is connected to ${edges.length} entities across the active investigation.`}</p>
@@ -32,7 +36,7 @@ export function EntityDrawer({ node, graph, onClose }: Props) {
         <div><MapPin size={14} /><span>Location<small>{node.location ?? 'Unknown'}</small></span></div>
         <div><Clock3 size={14} /><span>Last observed<small>{node.lastSeen ?? 'Not available'}</small></span></div>
         <div><Network size={14} /><span>Connections<small>{edges.length} direct links</small></span></div>
-        <div><AlertTriangle size={14} /><span>Risk signals<small>{Math.max(1, Math.round(node.risk / 18))} detected</small></span></div>
+        <div>{isProtected ? <LockKeyhole size={14}/> : <AlertTriangle size={14} />}<span>{isProtected ? 'Privacy policy' : 'Risk signals'}<small>{isProtected ? 'Scoring prohibited' : `${Math.max(1, Math.round(node.risk / 18))} detected`}</small></span></div>
       </div>
       {node.aliases && <div className="drawer-section"><h3>Known aliases</h3><div className="tag-row">{node.aliases.map((tag) => <span key={tag}><Tag size={11} />{tag}</span>)}</div></div>}
       <div className="drawer-section">

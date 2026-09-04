@@ -1,4 +1,4 @@
-export type EntityType = 'person' | 'organization' | 'location' | 'account' | 'phone' | 'event' | 'vehicle' | 'crime'
+export type EntityType = 'person' | 'protected_person' | 'organization' | 'location' | 'account' | 'phone' | 'event' | 'vehicle' | 'crime'
 export type Severity = 'critical' | 'high' | 'medium' | 'low'
 
 export interface GraphNode {
@@ -309,6 +309,63 @@ export interface IdentityCandidate {
   receipt: string
 }
 
+export interface ProtectedProfile {
+  id: string
+  graph_name: string
+  name: string
+  phone: string
+  address: string
+  status: 'masked' | 'revealed-for-current-response'
+  risk_scoring?: 'prohibited'
+  synthetic?: boolean
+  audit_hash?: string
+  guardrail: string
+}
+
+export interface AuditVerification {
+  valid: boolean
+  entries: number
+  head: string
+  errors: Array<{ sequence: number | null; reason: string }>
+  method: string
+  scope_note: string
+}
+
+export interface ReadinessCheck {
+  id: string
+  label: string
+  passed: boolean
+  detail: string
+  required: boolean
+}
+
+export interface SystemReadiness {
+  ready: boolean
+  offline_capable: boolean
+  external_services_required: boolean
+  public_demo: boolean
+  active_investigation: { id: string; name: string }
+  checks: ReadinessCheck[]
+  audit: AuditVerification
+  scope_note: string
+}
+
+export interface ScaleBenchmark {
+  generated_at: string
+  classification: string
+  runs: Array<{
+    records: number
+    graph_build_seconds: number
+    throughput_records_per_second: number
+    nodes: number
+    edges: number
+    peak_python_memory_mib: number
+    linear_search: { median_ms: number; p95_ms: number }
+    connection_path: { median_ms: number; p95_ms: number; hops: number | null }
+  }>
+  entity_resolution_safety: { false_merge_rate: number; automatic_merge_precision: number | null; precision_note: string }
+}
+
 export interface GraphSageResult {
   node_id: string
   name: string
@@ -353,4 +410,5 @@ export interface GraphSageAnalysis {
   message: string
   items: GraphSageResult[]
   count: number
+  privacy_exclusions?: number
 }

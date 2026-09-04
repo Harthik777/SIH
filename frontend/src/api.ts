@@ -1,5 +1,5 @@
 import { graphData } from './data/mockData'
-import type { AlertItem, AnalyticsDistribution, CentralityResult, ConnectionPath, CounterfactualResult, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, MotifResponse, PipelineRun, RiskTrendPoint, SurakshaEvaluation, SurakshaReplay, TimelineEvent, UploadRecord } from './types'
+import type { AlertItem, AnalyticsDistribution, AuditVerification, CentralityResult, ConnectionPath, CounterfactualResult, GraphData, GraphSageAnalysis, IdentityCandidate, InvestigationBriefing, InvestigationWorkspace, LocationSignal, MotifResponse, PipelineRun, ProtectedProfile, RiskTrendPoint, ScaleBenchmark, SurakshaEvaluation, SurakshaReplay, SystemReadiness, TimelineEvent, UploadRecord } from './types'
 
 const json = async <T>(path: string, options?: RequestInit): Promise<T> => {
   const response = await fetch(path, options)
@@ -98,6 +98,35 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ decision, rationale }),
     })
+  },
+
+  async resetSuraksha(): Promise<void> {
+    await json('/api/demo/suraksha/reset', { method: 'POST' })
+  },
+
+  async getProtectedPeople(): Promise<ProtectedProfile[]> {
+    const result = await json<{ items: ProtectedProfile[] }>('/api/protected-persons')
+    return result.items
+  },
+
+  async revealProtectedPerson(id: string, reason: string, authorizationReference: string): Promise<ProtectedProfile> {
+    return json<ProtectedProfile>(`/api/protected-persons/${encodeURIComponent(id)}/reveal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, authorization_reference: authorizationReference }),
+    })
+  },
+
+  async getAuditVerification(): Promise<AuditVerification> {
+    return json<AuditVerification>('/api/audit/verify')
+  },
+
+  async getReadiness(): Promise<SystemReadiness> {
+    return json<SystemReadiness>('/api/system/readiness')
+  },
+
+  async getScaleBenchmark(): Promise<ScaleBenchmark> {
+    return json<ScaleBenchmark>('/api/benchmarks/scale')
   },
 
   async getInvestigations(): Promise<InvestigationWorkspace> {

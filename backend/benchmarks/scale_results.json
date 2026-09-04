@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-04T17:02:11.513852+00:00",
+  "classification": "synthetic-performance-evaluation",
+  "method": "in-process CPython; deterministic CDR generator; actual build_multisource_graph and connection_path code paths",
+  "environment": {
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "processor": "Intel64 Family 6 Model 170 Stepping 4, GenuineIntel"
+  },
+  "runs": [
+    {
+      "records": 10000,
+      "generated_records_retained": false,
+      "generation_seconds": 0.506,
+      "graph_build_seconds": 9.529,
+      "throughput_records_per_second": 1049.4,
+      "nodes": 14256,
+      "edges": 40000,
+      "peak_python_memory_mib": 76.13,
+      "linear_search": {
+        "median_ms": 4.827,
+        "p95_ms": 12.088
+      },
+      "connection_path": {
+        "median_ms": 233.699,
+        "p95_ms": 331.593,
+        "hops": 1,
+        "maximum_hops": 4
+      }
+    },
+    {
+      "records": 100000,
+      "generated_records_retained": false,
+      "generation_seconds": 6.246,
+      "graph_build_seconds": 80.838,
+      "throughput_records_per_second": 1237.0,
+      "nodes": 104256,
+      "edges": 400000,
+      "peak_python_memory_mib": 700.25,
+      "linear_search": {
+        "median_ms": 34.314,
+        "p95_ms": 44.225
+      },
+      "connection_path": {
+        "median_ms": 1657.905,
+        "p95_ms": 1833.464,
+        "hops": 1,
+        "maximum_hops": 4
+      }
+    }
+  ],
+  "entity_resolution_safety": {
+    "policy": "no automatic identity merge",
+    "negative_control_pairs": 200,
+    "automatic_merges": 0,
+    "false_merges": 0,
+    "false_merge_rate": 0.0,
+    "automatic_merge_precision": null,
+    "precision_note": "Not applicable: Sentinel abstains from automatic identity merges and requires a recorded analyst decision.",
+    "flagship_negative_control": "Kavya Rao and K. Rao remain distinct despite name similarity."
+  },
+  "limitations": [
+    "Peak memory is Python allocation peak reported by tracemalloc, not total operating-system RSS.",
+    "Results describe this machine and synthetic schema; production hardware and source complexity will differ.",
+    "The benchmark does not claim distributed or concurrent-user scale."
+  ]
+}

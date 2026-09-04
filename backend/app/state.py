@@ -185,6 +185,17 @@ async def run_pipeline(pipeline_id: str, upload_dir: Path) -> None:
                 activate=state.activate,
             )
             state.result["investigation"] = investigation
+            from .audit_log import append_audit_event
+
+            append_audit_event(
+                "investigation.create",
+                investigation["id"],
+                {
+                    "source_upload": upload.id,
+                    "records": investigation["records"],
+                    "activated": investigation["active"],
+                },
+            )
             state.logs.append(
                 f"Investigation snapshot {investigation['id']} stored locally"
                 + (" and activated." if investigation["active"] else ".")

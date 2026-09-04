@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: sentinel-sih-26189-harthik
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: SENTINEL_ENVIRONMENT
+        value: production-public-demo
+      - key: SENTINEL_PUBLIC_DEMO
+        value: "true"
+      - key: SENTINEL_ALLOWED_ORIGINS
+        value: https://sentinel-sih-26189-harthik.onrender.com
+      - key: SENTINEL_SECRET_KEY
+        generateValue: true
+      - key: SENTINEL_ANALYST_PASSWORD
+        generateValue: true

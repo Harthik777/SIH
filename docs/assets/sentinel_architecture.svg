@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">Sentinel system architecture</title>
+  <desc id="desc">Evidence sources flow through local ingestion and an ontology-aligned graph into explainable analytics and the investigator web interface. Protected-person privacy and a hash-chained audit trail span the system.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07110f"/><stop offset="1" stop-color="#10231e"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="8" stdDeviation="12" flood-opacity=".25"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0 0L9 3L0 6Z" fill="#45d6b1"/></marker>
+    <style>
+      .box{fill:#10231f;stroke:#2e5147;stroke-width:1.5;rx:13;filter:url(#shadow)}.accent{fill:#112a24;stroke:#45d6b1}.privacy{fill:#15251f;stroke:#7ee7c6}.audit{fill:#211c2e;stroke:#9b8cff}.h{font:700 18px Inter,Arial,sans-serif;fill:#edf5f2}.k{font:600 11px ui-monospace,monospace;letter-spacing:1.5px;fill:#45d6b1}.t{font:400 12px Inter,Arial,sans-serif;fill:#9baea7}.small{font:500 10px Inter,Arial,sans-serif;fill:#7c918a}.line{fill:none;stroke:#45d6b1;stroke-width:2;marker-end:url(#arrow)}.dash{fill:none;stroke:#9b8cff;stroke-width:1.5;stroke-dasharray:6 5}
+    </style>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <text x="54" y="58" class="k">SENTINEL / SIH 26189</text><text x="54" y="91" class="h" font-size="28">Privacy-first criminal network intelligence — one deployable web service</text>
+  <text x="54" y="116" class="t">Offline-capable · synthetic public showcase · deterministic evidence receipts · no paid API dependency</text>
+
+  <path class="line" d="M267 340H351"/><path class="line" d="M567 340H651"/><path class="line" d="M867 340H951"/>
+  <path class="dash" d="M180 558V615H1085V558"/>
+  <path class="dash" d="M388 558V588H1085"/><path class="dash" d="M760 558V588"/>
+
+  <g transform="translate(52 164)"><rect class="box" width="215" height="352"/><text x="20" y="34" class="k">01 / EVIDENCE</text><text x="20" y="64" class="h">Multi-source intake</text>
+    <g transform="translate(20 90)"><rect class="accent" width="78" height="45" rx="7"/><text x="39" y="27" text-anchor="middle" class="k">FIR</text><rect class="accent" x="95" width="78" height="45" rx="7"/><text x="134" y="27" text-anchor="middle" class="k">CDR</text>
+    <rect class="accent" y="58" width="78" height="45" rx="7"/><text x="39" y="85" text-anchor="middle" class="k">BANK</text><rect class="accent" x="95" y="58" width="78" height="45" rx="7"/><text x="134" y="85" text-anchor="middle" class="k">ANPR</text>
+    <rect class="accent" y="116" width="78" height="45" rx="7"/><text x="39" y="143" text-anchor="middle" class="k">SURV</text><rect class="accent" x="95" y="116" width="78" height="45" rx="7"/><text x="134" y="143" text-anchor="middle" class="k">OSINT</text></g>
+    <text x="20" y="284" class="t">CSV · JSON · TXT · XML</text><text x="20" y="307" class="small">SHA-256 source fingerprint</text><text x="20" y="326" class="small">Immutable evidence snapshot</text>
+  </g>
+
+  <g transform="translate(351 164)"><rect class="box" width="216" height="352"/><text x="20" y="34" class="k">02 / FUSION</text><text x="20" y="64" class="h">Local processing</text>
+    <text x="20" y="102" class="t">Schema profiling</text><text x="20" y="130" class="t">Rule-based entity extraction</text><text x="20" y="158" class="t">Human-safe resolution</text><text x="20" y="186" class="t">Ontology mapping</text>
+    <rect class="privacy" x="20" y="217" width="176" height="77" rx="8"/><text x="34" y="242" class="k">PROTECTED PERSON</text><text x="34" y="263" class="small">Masked identity · risk = 0</text><text x="34" y="280" class="small">Excluded from ML ranking</text>
+    <text x="20" y="326" class="small">FastAPI · Pydantic · local files</text>
+  </g>
+
+  <g transform="translate(651 164)"><rect class="box" width="216" height="352"/><text x="20" y="34" class="k">03 / INTELLIGENCE</text><text x="20" y="64" class="h">Typed evidence graph</text>
+    <circle cx="55" cy="134" r="24" fill="#9b8cff"/><circle cx="155" cy="120" r="22" fill="#45d6b1"/><circle cx="126" cy="205" r="24" fill="#f6b85b"/><circle cx="51" cy="235" r="19" fill="#5ca9ff"/><path d="M76 129L133 122M68 151L108 191M140 141L130 181M73 225L103 210" stroke="#9baea7" stroke-width="2"/>
+    <text x="20" y="291" class="t">TRACE path proofs</text><text x="20" y="314" class="t">GraphSAGE checkpoint</text><text x="20" y="337" class="t">Motifs · centrality · anomalies</text>
+  </g>
+
+  <g transform="translate(951 164)"><rect class="box" width="277" height="352"/><text x="20" y="34" class="k">04 / INVESTIGATE</text><text x="20" y="64" class="h">React web command center</text>
+    <rect class="accent" x="20" y="91" width="237" height="51" rx="7"/><text x="36" y="113" class="k">FUSION ROOM</text><text x="36" y="130" class="small">Six-stage guided judge replay</text>
+    <rect class="box" x="20" y="155" width="112" height="55" rx="7"/><text x="36" y="178" class="t">Graph explorer</text><text x="36" y="195" class="small">typed network</text><rect class="box" x="145" y="155" width="112" height="55" rx="7"/><text x="161" y="178" class="t">TRACE Lab</text><text x="161" y="195" class="small">proof paths</text>
+    <rect class="box" x="20" y="223" width="112" height="55" rx="7"/><text x="36" y="246" class="t">Analytics</text><text x="36" y="263" class="small">model + motifs</text><rect class="box" x="145" y="223" width="112" height="55" rx="7"/><text x="161" y="246" class="t">Reports</text><text x="161" y="263" class="small">audited export</text>
+    <text x="20" y="318" class="small">Responsive · same-origin API · TLS-ready</text>
+  </g>
+
+  <g transform="translate(52 576)"><rect class="audit" width="1176" height="92" rx="13"/><text x="20" y="30" class="k" fill="#b7abff">CROSS-CUTTING ASSURANCE</text><text x="20" y="57" class="h">Append-only SHA-256 audit chain</text><text x="20" y="77" class="small">Uploads · activations · identity decisions · protected reveals · acknowledgements · exports · resets</text>
+    <text x="840" y="38" class="k">PREVIOUS HASH → CURRENT HASH</text><text x="840" y="63" class="t">Actor · UTC timestamp · action · target</text></g>
+</svg>

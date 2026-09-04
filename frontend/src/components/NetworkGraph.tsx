@@ -5,6 +5,7 @@ import type { EntityType, GraphData, GraphNode } from '../types'
 
 const colors: Record<EntityType, string> = {
   person: '#9b8cff',
+  protected_person: '#7ee7c6',
   organization: '#45d6b1',
   location: '#5ca9ff',
   account: '#f6b85b',
@@ -29,7 +30,7 @@ export function NetworkGraph({ data, selected, onSelect, expanded, onExpand, tal
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<Core | null>(null)
   const [layout, setLayout] = useState<LayoutName>('cose')
-  const [filters, setFilters] = useState<Set<EntityType>>(new Set(['person', 'organization', 'location', 'account', 'event', 'vehicle', 'crime']))
+  const [filters, setFilters] = useState<Set<EntityType>>(new Set(['person', 'protected_person', 'organization', 'location', 'account', 'phone', 'event', 'vehicle', 'crime']))
   const [showFilters, setShowFilters] = useState(false)
   const [query, setQuery] = useState('')
   const [themeKey, setThemeKey] = useState(document.documentElement.dataset.theme)
@@ -76,7 +77,7 @@ export function NetworkGraph({ data, selected, onSelect, expanded, onExpand, tal
     const cy = cytoscape({
       container: containerRef.current,
       elements: [
-        ...visibleData.nodes.map((node) => ({ data: { ...node, label: node.name, color: colors[node.type], size: 25 + node.risk * .16 } })),
+        ...visibleData.nodes.map((node) => ({ data: { ...node, label: node.name, color: colors[node.type], size: node.type === 'protected_person' ? 29 : 25 + node.risk * .16 } })),
         ...visibleData.edges.map((edge) => ({ data: edge, classes: edge.anomalous ? 'anomalous' : '' })),
       ],
       style: [
@@ -93,6 +94,7 @@ export function NetworkGraph({ data, selected, onSelect, expanded, onExpand, tal
         } },
         { selector: 'edge.anomalous', style: { width: 1.8, 'line-color': '#ef6f84', 'target-arrow-color': '#ef6f84', 'line-style': 'dashed' } },
         { selector: 'node:selected', style: { 'border-width': 5, 'border-opacity': .18, 'border-color': '#ffffff' } },
+        { selector: 'node[type = "protected_person"]', style: { 'border-style': 'double', 'border-width': 4, 'shape': 'diamond' } },
       ],
       layout: { name: layout, animate: false, padding: 35, nodeRepulsion: () => 9000, idealEdgeLength: () => 90 },
       minZoom: .35,

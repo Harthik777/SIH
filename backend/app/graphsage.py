@@ -21,6 +21,7 @@ from .models import GraphPayload
 
 MODEL_DIR = Path(__file__).resolve().parent.parent / "models"
 CHECKPOINT_PATH = MODEL_DIR / "graphsage_model.pt"
+NUMPY_WEIGHTS_PATH = MODEL_DIR / "graphsage_numpy_weights.npz"
 NOTEBOOK_PATH = MODEL_DIR / "GraphSAGE_Model.ipynb"
 MODEL_GRAPH_PATH = MODEL_DIR / "crime_kg_nodes_edges.json"
 LINK_PREDICTIONS_PATH = MODEL_DIR / "link_predictions.json"
@@ -51,12 +52,20 @@ def runtime_available() -> bool:
     return importlib.util.find_spec("torch") is not None and importlib.util.find_spec("torch_geometric") is not None
 
 
+def lightweight_runtime_available() -> bool:
+    return importlib.util.find_spec("numpy") is not None and NUMPY_WEIGHTS_PATH.exists()
+
+
 def model_status() -> dict[str, Any]:
     has_runtime = runtime_available()
+    has_lightweight_runtime = lightweight_runtime_available()
     has_checkpoint = CHECKPOINT_PATH.exists()
     if has_checkpoint and has_runtime:
         status, mode = "ready", "graphsage-inference"
         message = "Checkpoint and PyTorch Geometric runtime are available."
+    elif has_checkpoint and has_lightweight_runtime:
+        status, mode = "ready", "graphsage-lightweight-inference"
+        message = "Checkpoint weights are running through the equivalent local NumPy GraphSAGE forward pass."
     elif not has_checkpoint:
         status, mode = "checkpoint-required", "structural-feature-preview"
         message = "Architecture is integrated; add graphsage_model.pt to enable trained inference."
@@ -97,6 +106,8 @@ def model_status() -> dict[str, Any]:
             "training_metadata": TRAINING_METADATA_PATH.name,
             "checkpoint_available": has_checkpoint,
             "runtime_available": has_runtime,
+            "lightweight_runtime_available": has_lightweight_runtime,
+            "numpy_weights": NUMPY_WEIGHTS_PATH.name,
         },
     }
 
@@ -243,27 +254,103 @@ def _run_inference(payload: GraphPayload, limit: int) -> list[dict[str, Any]]:
     return items[:limit]
 
 
+def _run_numpy_inference(payload: GraphPayload, limit: int) -> list[dict[str, Any]]:
+    """Equivalent two-layer mean-aggregator forward pass without PyTorch/PyG."""
+    import numpy as np
+
+    node_order, features, degree = build_features(payload)
+    node_index = {node_id: index for index, node_id in enumerate(node_order)}
+    source_indices: list[int] = []
+    target_indices: list[int] = []
+    for edge in payload.edges:
+        if edge.source in node_index and edge.target in node_index:
+            source, target = node_index[edge.source], node_index[edge.target]
+            source_indices.extend((source, target))
+            target_indices.extend((target, source))
+    sources = np.asarray(source_indices, dtype=np.int64)
+    targets = np.asarray(target_indices, dtype=np.int64)
+    weights = np.load(NUMPY_WEIGHTS_PATH)
+
+    def layer(values: Any, prefix: str) -> Any:
+        aggregated = np.zeros_like(values)
+        counts = np.zeros((values.shape[0], 1), dtype=np.float32)
+        if sources.size:
+            np.add.at(aggregated, targets, values[sources])
+            np.add.at(counts, targets, 1)
+        aggregated = aggregated / np.maximum(counts, 1)
+        return (
+            aggregated @ weights[f"{prefix}.lin_l.weight"].T
+            + weights[f"{prefix}.lin_l.bias"]
+            + values @ weights[f"{prefix}.lin_r.weight"].T
+        )
+
+    x = np.asarray(features, dtype=np.float32)
+    hidden = np.maximum(layer(x, "sage1"), 0)
+    hidden = np.maximum(layer(hidden, "sage2"), 0)
+    logits = hidden @ weights["classifier.weight"].T + weights["classifier.bias"]
+    logits -= logits.max(axis=1, keepdims=True)
+    probabilities = np.exp(logits)
+    probabilities = probabilities[:, 1] / probabilities.sum(axis=1)
+
+    case_neighbors = _case_neighbors(payload)
+    nodes = {node.id: node for node in payload.nodes}
+    items = []
+    for node_id, probability in zip(node_order, probabilities.tolist(), strict=True):
+        node = nodes[node_id]
+        if node.type != "person":
+            continue
+        items.append(
+            {
+                "node_id": node.id,
+                "name": node.name,
+                "case_neighbors": case_neighbors.get(node.id, 0),
+                "graph_degree": degree.get(node.id, 0),
+                "feature_vector": features[node_index[node.id]],
+                "derived_label": "suspicious" if probability >= 0.5 else "normal",
+                "probability": round(float(probability), 6),
+                "risk": node.risk,
+            }
+        )
+    items.sort(key=lambda item: (-item["probability"], -item["risk"], item["name"]))
+    return items[:limit]
+
+
 def analyze_graph(payload: GraphPayload, limit: int = 25) -> dict[str, Any]:
+    # Protected people are structurally visible to authorized investigators but
+    # are never passed into suspect classification or feature generation.
+    model_nodes = [node for node in payload.nodes if node.type != "protected_person"]
+    model_node_ids = {node.id for node in model_nodes}
+    model_payload = GraphPayload(
+        nodes=model_nodes,
+        edges=[edge for edge in payload.edges if edge.source in model_node_ids and edge.target in model_node_ids],
+    )
     status = model_status()
     mode = status["mode"]
     message = status["message"]
-    unsupported = sorted({node.type for node in payload.nodes} - SUPPORTED_ENTITY_TYPES)
+    unsupported = sorted({node.type for node in model_payload.nodes} - SUPPORTED_ENTITY_TYPES)
     if unsupported:
         mode = "schema-incompatible-preview"
         message = f"GraphSAGE inference withheld: the active graph includes out-of-training-schema node types ({', '.join(unsupported)}). Structural person signals are shown instead."
         review_status = {**status, "status": "schema-review", "mode": mode, "message": message}
-        items = _schema_safe_preview(payload, limit)
-        return {"model": review_status, "mode": mode, "message": message, "items": items, "count": len(items)}
+        items = _schema_safe_preview(model_payload, limit)
+        return {"model": review_status, "mode": mode, "message": message, "items": items, "count": len(items), "privacy_exclusions": len(payload.nodes) - len(model_nodes)}
     if mode == "graphsage-inference":
         try:
-            items = _run_inference(payload, limit)
+            items = _run_inference(model_payload, limit)
         except Exception as exc:  # A mismatched state dict should not take down analytics.
             mode = "inference-error"
             message = f"GraphSAGE checkpoint could not be loaded: {type(exc).__name__}."
-            items = _preview_items(payload, limit)
+            items = _preview_items(model_payload, limit)
+    elif mode == "graphsage-lightweight-inference":
+        try:
+            items = _run_numpy_inference(model_payload, limit)
+        except Exception as exc:
+            mode = "inference-error"
+            message = f"Lightweight GraphSAGE checkpoint could not be loaded: {type(exc).__name__}."
+            items = _preview_items(model_payload, limit)
     else:
-        items = _preview_items(payload, limit)
-    return {"model": status, "mode": mode, "message": message, "items": items, "count": len(items)}
+        items = _preview_items(model_payload, limit)
+    return {"model": status, "mode": mode, "message": message, "items": items, "count": len(items), "privacy_exclusions": len(payload.nodes) - len(model_nodes)}
 
 
 @lru_cache(maxsize=8)

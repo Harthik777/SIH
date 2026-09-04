@@ -18,8 +18,14 @@ const NetworkGraph = lazy(() => import('./components/NetworkGraph').then((module
 const TraceLab = lazy(() => import('./components/TraceLab').then((module) => ({ default: module.TraceLab })))
 const FusionRoom = lazy(() => import('./components/FusionRoom').then((module) => ({ default: module.FusionRoom })))
 
+const sectionFromUrl = (): Section => {
+  const requested = new URLSearchParams(window.location.search).get('section')
+  const allowed: Section[] = ['dashboard', 'upload', 'fusion', 'graph', 'timeline', 'map', 'analytics', 'trace', 'alerts', 'reports', 'settings']
+  return allowed.includes(requested as Section) ? requested as Section : 'dashboard'
+}
+
 function App() {
-  const [section, setSection] = useState<Section>('dashboard')
+  const [section, setSection] = useState<Section>(sectionFromUrl)
   const [collapsed, setCollapsed] = useState(() => window.innerWidth < 800)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('sentinel-theme') as 'dark'|'light') || 'dark')
   const [graph, setGraph] = useState<GraphData>(fallbackGraph)

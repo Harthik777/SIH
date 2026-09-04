@@ -9,7 +9,9 @@ from collections import Counter
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
+from uuid import uuid4
 
+from .audit_log import append_audit_event
 from .crime_pipeline import build_multisource_graph
 from .models import GraphPayload
 from .trace_engine import connection_path
@@ -249,10 +251,34 @@ def record_resolution_decision(
         decisions = _read_decisions()
         decisions[candidate_id] = value
         DECISIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        temporary = DECISIONS_PATH.with_suffix(".tmp")
+        temporary = DECISIONS_PATH.with_name(f".{DECISIONS_PATH.name}.{uuid4().hex}.tmp")
         temporary.write_text(json.dumps(decisions, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         temporary.replace(DECISIONS_PATH)
-    return {**value, "receipt": _canonical_receipt({"candidate_id": candidate_id, **value})}
+    audit = append_audit_event(
+        "identity-resolution.decision",
+        candidate_id,
+        {"decision": decision, "rationale": rationale.strip(), "synthetic_fixture": True},
+    )
+    return {**value, "receipt": _canonical_receipt({"candidate_id": candidate_id, **value}), "audit_hash": audit["hash"]}
+
+
+def reset_demo() -> dict[str, Any]:
+    """Return the flagship exercise to stage one without deleting evidence."""
+    with _LOCK:
+        decision_count = len(_read_decisions())
+        DECISIONS_PATH.unlink(missing_ok=True)
+    audit = append_audit_event(
+        "demo.reset",
+        SURAKSHA_ID,
+        {"cleared_identity_decisions": decision_count, "evidence_modified": False},
+    )
+    return {
+        "status": "ready",
+        "stage": 1,
+        "cleared_identity_decisions": decision_count,
+        "evidence_modified": False,
+        "audit_hash": audit["hash"],
+    }
 
 
 def source_sha256() -> str:
