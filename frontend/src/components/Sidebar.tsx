@@ -2,6 +2,7 @@ import {
   Activity, Bell, BrainCircuit, ChevronLeft, Database, FileDown, Fingerprint, Layers3, LayoutDashboard,
   MapPinned, Network, Settings, ShieldCheck, UploadCloud,
 } from 'lucide-react'
+import type { AuthUser } from '../types'
 import { Logo } from './Logo'
 
 export type Section = 'dashboard' | 'upload' | 'fusion' | 'graph' | 'timeline' | 'map' | 'analytics' | 'trace' | 'alerts' | 'reports' | 'settings'
@@ -28,9 +29,23 @@ interface Props {
   collapsed: boolean
   onCollapse: () => void
   alertCount: number
+  user: AuthUser | null
 }
 
-export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount }: Props) {
+const sessionProfile = (user: AuthUser | null) => {
+  if (!user) return { initials: '--', name: 'Session unavailable', role: 'Identity unavailable' }
+  if (user.mode === 'synthetic-public-demo') return { initials: 'PD', name: 'Public demo', role: 'Synthetic showcase' }
+  if (user.mode === 'offline-fallback') return { initials: 'OF', name: 'Offline workspace', role: 'Local fallback' }
+
+  const words = user.email.split('@')[0].split(/[._-]+/).filter(Boolean)
+  const name = words.map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') || user.email
+  const initials = (words.length > 1 ? words.map((word) => word[0]).join('') : words[0]?.slice(0, 2) || 'ID').slice(0, 2).toUpperCase()
+  const role = user.role === 'demo' ? 'Demonstration role' : user.role.charAt(0).toUpperCase() + user.role.slice(1)
+  return { initials, name, role }
+}
+
+export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount, user }: Props) {
+  const profile = sessionProfile(user)
   const renderItem = ({ id, label, icon: Icon }: (typeof primary)[number]) => (
     <button
       key={id}
@@ -65,9 +80,9 @@ export function Sidebar({ section, onChange, collapsed, onCollapse, alertCount }
           {!collapsed && <span>Settings</span>}
         </button>
         {!collapsed && (
-          <div className="analyst">
-            <div className="avatar">AK</div>
-            <div><strong>Alex Kim</strong><small><ShieldCheck size={12} /> Lead analyst</small></div>
+          <div className="analyst" title={user?.email}>
+            <div className="avatar">{profile.initials}</div>
+            <div><strong>{profile.name}</strong><small><ShieldCheck size={12} /> {profile.role}</small></div>
           </div>
         )}
       </div>

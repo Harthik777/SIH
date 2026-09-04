@@ -113,7 +113,7 @@ function App() {
   return (
     <div className={`app-shell ${collapsed ? 'sidebar-is-collapsed' : ''}`}>
       <a className="skip-link" href="#main-intelligence">Skip to investigation content</a>
-      <Sidebar section={section} onChange={navigate} collapsed={collapsed} onCollapse={() => setCollapsed(!collapsed)} alertCount={openAlerts} />
+      <Sidebar section={section} onChange={navigate} collapsed={collapsed} onCollapse={() => setCollapsed(!collapsed)} alertCount={openAlerts} user={user} />
       <Topbar theme={theme} onTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} nodes={graph.nodes} onSelectNode={setSelectedNode} onMenu={() => setCollapsed(!collapsed)} onNotifications={() => navigate('alerts')} workspace={workspace} onInvestigationChange={async (id) => { await api.activateInvestigation(id); await refreshInvestigation() }} />
       <main className="main-content" id="main-intelligence">
         <InvestigationContextBar activeCase={activeInvestigation?.name ?? 'Operation City Shield'} section={section} openAlerts={openAlerts} onNavigate={navigate}/>
