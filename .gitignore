@@ -11,6 +11,7 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+.tools/
 backend/data/uploads/*
 !backend/data/uploads/.gitkeep
 backend/data/investigations/*
