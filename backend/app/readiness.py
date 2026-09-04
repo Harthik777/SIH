@@ -55,12 +55,17 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
     if MODEL_EVALUATION_PATH.exists():
         try:
             evaluation = json.loads(MODEL_EVALUATION_PATH.read_text(encoding="utf-8"))
+            graphsage_evaluation = evaluation.get("graphsage", {})
+            stress_test = graphsage_evaluation.get("evidence_masking_stress_test", {})
             model_evaluation_available = bool(
-                evaluation.get("graphsage", {}).get("metrics_on_full_supplied_graph")
-                and evaluation.get("graphsage", {}).get("held_out_node_validation")
+                evaluation.get("schema_version") == 2
+                and graphsage_evaluation.get("reproduction_diagnostic")
+                and 0 < stress_test.get("summary", {}).get("f1", {}).get("mean", 0) < 1
+                and stress_test.get("generalization_claim_allowed") is False
                 and evaluation.get("fixed_baselines")
+                and evaluation.get("leakage_audit", {}).get("status") == "fails-independent-generalization-criteria"
                 and evaluation.get("claim_assurance", {}).get("field_accuracy") == "not-established"
-                and len(evaluation.get("limitations", [])) >= 4
+                and len(evaluation.get("limitations", [])) >= 6
             )
         except (OSError, TypeError, json.JSONDecodeError):
             model_evaluation_available = False
@@ -84,7 +89,7 @@ def system_readiness(public_demo: bool = False) -> dict[str, Any]:
         _check("graphsage-checkpoint", "GraphSAGE checkpoint", CHECKPOINT_PATH.exists(), CHECKPOINT_PATH.name),
         _check("graphsage-notebook", "GraphSAGE reproducibility notebook", NOTEBOOK_PATH.exists(), NOTEBOOK_PATH.name),
         _check("scale-evidence", "10k and 100k scale evidence", benchmark_available and {10_000, 100_000}.issubset(benchmark_sizes), f"measured sizes: {benchmark_sizes or 'not run'}"),
-        _check("model-evaluation", "GraphSAGE model card and baseline evaluation", model_evaluation_available, "confusion matrices, calibration, fixed baselines and explicit limitations"),
+        _check("model-evaluation", "GraphSAGE leakage audit and robustness evaluation", model_evaluation_available, "perfect reproduction metric quarantined; missing-evidence stress test and field-claim gate present"),
         _check("audit-chain", "Audit-chain integrity", bool(audit["valid"]), f"{audit['entries']} chained entries"),
         _check("local-storage", "Writable local evidence store", os.access(storage_parent, os.W_OK), str(storage_parent)),
         _check("durable-persistence", "Configured persistence profile", persistence_ok, persistence_detail),

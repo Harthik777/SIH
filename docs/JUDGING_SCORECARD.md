@@ -24,7 +24,7 @@ This scorecard maps Sentinel to the published SIH idea-selection dimensions: nov
 2. **Patterns are computed, not narrated:** five declared patterns are recovered by deterministic detectors; each exposes records, alternatives and a next verification action.
 3. **Every path is challengeable:** all 148 Operation Suraksha relationships carry source ID, channel, time and SHA-256 record digest.
 4. **Safety changes system behavior:** protected people are a separate type, stay masked, receive risk zero, and never enter ML; uncertain identities are not auto-merged.
-5. **The team knows what its model cannot prove:** the claim passport marks field accuracy unestablished and blocks operational use pending independent validation.
+5. **The team knows what its model cannot prove:** the leakage audit quarantines the perfect reproduction result, the claim passport marks field accuracy unestablished, and operational use remains blocked pending independent validation.
 
 ## Evidence locations
 
@@ -35,6 +35,7 @@ This scorecard maps Sentinel to the published SIH idea-selection dimensions: nov
 - Scale evidence: `/api/benchmarks/scale` and `backend/benchmarks/scale_results.json`
 - Persistence proof: `.github/workflows/ci.yml` → `hybrid-persistence`
 - Security and operational boundary: `docs/SECURITY_OPERATIONS.md`
+- Ledger/blockchain threat-model decision: `docs/LEDGER_DECISION.md`
 - External validation plan: `docs/FIELD_PILOT_PROTOCOL.md`
 
 ## Do not claim

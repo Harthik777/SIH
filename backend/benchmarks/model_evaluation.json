@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "generated_at": "2026-09-04T18:19:41.778724+00:00",
-  "classification": "supplied-corpus-model-evaluation",
+  "schema_version": 2,
+  "generated_at": "2026-09-04T18:54:54.091801+00:00",
+  "classification": "supplied-corpus-diagnostic-evaluation",
   "environment": {
     "python": "3.11.9",
     "platform": "Windows-10-10.0.26200-SP0"
@@ -15,35 +15,245 @@
   "graphsage": {
     "runtime_mode": "graphsage-inference",
     "threshold": 0.5,
-    "metrics_on_full_supplied_graph": {
-      "true_positive": 61,
-      "true_negative": 373,
-      "false_positive": 0,
-      "false_negative": 0,
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1": 1.0,
-      "accuracy": 1.0
-    },
-    "brier_score": 0.096398,
-    "reported_reproduced_validation_f1": 1.0,
-    "held_out_node_validation": {
-      "samples": 87,
-      "positive_samples": 12,
-      "split_seed": 42,
-      "split_type": "fixed stratified transductive node holdout",
-      "metrics": {
-        "true_positive": 12,
-        "true_negative": 75,
-        "false_positive": 0,
-        "false_negative": 0,
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1": 1.0,
-        "accuracy": 1.0
+    "reproduction_diagnostic": {
+      "role": "checkpoint reproduction only; not an independent performance estimate",
+      "full_supplied_graph": {
+        "metrics": {
+          "true_positive": 61,
+          "true_negative": 373,
+          "false_positive": 0,
+          "false_negative": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "accuracy": 1.0
+        },
+        "brier_score": 0.096398
       },
-      "brier_score": 0.098747,
-      "independent_outcome_labels": false
+      "checkpoint_selection_partition": {
+        "samples": 87,
+        "positive_samples": 12,
+        "split_seed": 42,
+        "split_type": "fixed stratified transductive node partition",
+        "metrics": {
+          "true_positive": 12,
+          "true_negative": 75,
+          "false_positive": 0,
+          "false_negative": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "accuracy": 1.0
+        },
+        "brier_score": 0.098747,
+        "independent_outcome_labels": false,
+        "used_for_checkpoint_selection": true
+      },
+      "reported_reproduced_f1": 1.0
+    },
+    "evidence_masking_stress_test": {
+      "purpose": "diagnostic robustness to incomplete case-link evidence; not field validation",
+      "reference_target": "complete supplied-graph structural proxy",
+      "masking_unit": "person-event evidence edges",
+      "mask_rate": 0.2,
+      "case_edges": 500,
+      "masked_case_edges_per_trial": 100,
+      "trials": 10,
+      "seed_range": [
+        1000,
+        1009
+      ],
+      "summary": {
+        "precision": {
+          "mean": 1.0,
+          "min": 1.0,
+          "max": 1.0
+        },
+        "recall": {
+          "mean": 0.703279,
+          "min": 0.639344,
+          "max": 0.737705
+        },
+        "f1": {
+          "mean": 0.825299,
+          "min": 0.78,
+          "max": 0.849057
+        },
+        "accuracy": {
+          "mean": 0.958295,
+          "min": 0.949309,
+          "max": 0.963134
+        }
+      },
+      "brier_score": {
+        "mean": 0.103275,
+        "min": 0.093945,
+        "max": 0.110624
+      },
+      "trial_results": [
+        {
+          "seed": 1000,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 41,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 20,
+            "precision": 1.0,
+            "recall": 0.672131,
+            "f1": 0.803922,
+            "accuracy": 0.953917
+          },
+          "brier_score": 0.104389
+        },
+        {
+          "seed": 1001,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 44,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 17,
+            "precision": 1.0,
+            "recall": 0.721311,
+            "f1": 0.838095,
+            "accuracy": 0.960829
+          },
+          "brier_score": 0.102539
+        },
+        {
+          "seed": 1002,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 45,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 16,
+            "precision": 1.0,
+            "recall": 0.737705,
+            "f1": 0.849057,
+            "accuracy": 0.963134
+          },
+          "brier_score": 0.101845
+        },
+        {
+          "seed": 1003,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 45,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 16,
+            "precision": 1.0,
+            "recall": 0.737705,
+            "f1": 0.849057,
+            "accuracy": 0.963134
+          },
+          "brier_score": 0.093945
+        },
+        {
+          "seed": 1004,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 44,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 17,
+            "precision": 1.0,
+            "recall": 0.721311,
+            "f1": 0.838095,
+            "accuracy": 0.960829
+          },
+          "brier_score": 0.101809
+        },
+        {
+          "seed": 1005,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 44,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 17,
+            "precision": 1.0,
+            "recall": 0.721311,
+            "f1": 0.838095,
+            "accuracy": 0.960829
+          },
+          "brier_score": 0.09893
+        },
+        {
+          "seed": 1006,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 42,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 19,
+            "precision": 1.0,
+            "recall": 0.688525,
+            "f1": 0.815534,
+            "accuracy": 0.956221
+          },
+          "brier_score": 0.106384
+        },
+        {
+          "seed": 1007,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 40,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 21,
+            "precision": 1.0,
+            "recall": 0.655738,
+            "f1": 0.792079,
+            "accuracy": 0.951613
+          },
+          "brier_score": 0.110624
+        },
+        {
+          "seed": 1008,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 45,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 16,
+            "precision": 1.0,
+            "recall": 0.737705,
+            "f1": 0.849057,
+            "accuracy": 0.963134
+          },
+          "brier_score": 0.103205
+        },
+        {
+          "seed": 1009,
+          "masked_case_edges": 100,
+          "runtime_mode": "graphsage-inference",
+          "metrics": {
+            "true_positive": 39,
+            "true_negative": 373,
+            "false_positive": 0,
+            "false_negative": 22,
+            "precision": 1.0,
+            "recall": 0.639344,
+            "f1": 0.78,
+            "accuracy": 0.949309
+          },
+          "brier_score": 0.109077
+        }
+      ],
+      "independent_outcome_labels": false,
+      "generalization_claim_allowed": false
     }
   },
   "fixed_baselines": {
@@ -69,12 +279,21 @@
     }
   },
   "decision_policy": "Model outputs are prioritization signals; no automated identity, guilt, arrest, or enforcement decision is permitted.",
+  "leakage_audit": {
+    "status": "fails-independent-generalization-criteria",
+    "target_derived_from_input_graph": true,
+    "checkpoint_selected_on_reported_partition": true,
+    "independent_labels": false,
+    "identity_disjoint_test": false,
+    "temporal_holdout": false,
+    "conclusion": "The perfect reproduction score is expected under the supplied structural label design and is not a valid field-performance headline."
+  },
   "claim_assurance": {
     "field_accuracy": "not-established",
     "operational_use": "prohibited-without-independent-validation",
     "feature_target_dependency": "high",
     "dependency_explanation": "The target is defined from case-neighbor topology while graph topology and normalized degree are model inputs. The metric demonstrates reproducibility of a structural rule, not prediction of criminal conduct.",
-    "permitted_claim": "The supplied GraphSAGE notebook and checkpoint are reproducible for structural suspect prioritization on the supplied demonstration graph.",
+    "permitted_claim": "The supplied checkpoint is reproducible, and its sensitivity to deliberately masked case-link evidence is measured on the demonstration graph.",
     "prohibited_claims": [
       "real-world crime prediction accuracy",
       "proof of identity, intent, culpability, or guilt",
@@ -84,7 +303,9 @@
   },
   "limitations": [
     "The labels are structural proxy labels derived from the same graph, not independently adjudicated criminal outcomes.",
+    "The original validation partition was used to select the reproduced checkpoint, so its perfect F1 is a reproduction diagnostic rather than an unbiased performance estimate.",
     "The supplied corpus is demonstration data and does not establish field generalization, fairness, or causal validity.",
+    "The evidence-masking experiment is a robustness stress test against the complete-graph proxy, not an independent test set.",
     "Thresholds were not tuned on the reported full-graph metrics; external labelled evaluation is required before operational use.",
     "Protected-person nodes are excluded from model features and predictions."
   ]

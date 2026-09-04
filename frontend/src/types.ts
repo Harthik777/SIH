@@ -434,24 +434,51 @@ export interface ScaleBenchmark {
 }
 
 export interface ModelEvaluation {
+  schema_version: number
   classification: string
   dataset: { suspects: number; positive_suspects: number; label_definition: string }
   graphsage: {
     runtime_mode: string
     threshold: number
-    brier_score: number | null
-    metrics_on_full_supplied_graph: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
-    held_out_node_validation: {
-      samples: number
-      positive_samples: number
-      split_seed: number
-      split_type: string
-      metrics: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
-      brier_score: number | null
+    reproduction_diagnostic: {
+      role: string
+      reported_reproduced_f1: number
+      full_supplied_graph: {
+        metrics: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
+        brier_score: number | null
+      }
+      checkpoint_selection_partition: {
+        samples: number
+        positive_samples: number
+        split_seed: number
+        split_type: string
+        metrics: { precision: number; recall: number; f1: number; accuracy: number; false_positive: number; false_negative: number }
+        brier_score: number | null
+        independent_outcome_labels: boolean
+        used_for_checkpoint_selection: boolean
+      }
+    }
+    evidence_masking_stress_test: {
+      purpose: string
+      mask_rate: number
+      trials: number
+      masked_case_edges_per_trial: number
+      summary: Record<'precision' | 'recall' | 'f1' | 'accuracy', { mean: number; min: number; max: number }>
+      brier_score: { mean: number; min: number; max: number } | null
       independent_outcome_labels: boolean
+      generalization_claim_allowed: boolean
     }
   }
   fixed_baselines: Record<string, { precision: number; recall: number; f1: number; accuracy: number }>
+  leakage_audit: {
+    status: string
+    target_derived_from_input_graph: boolean
+    checkpoint_selected_on_reported_partition: boolean
+    independent_labels: boolean
+    identity_disjoint_test: boolean
+    temporal_holdout: boolean
+    conclusion: string
+  }
   claim_assurance: {
     field_accuracy: string
     operational_use: string
@@ -492,9 +519,11 @@ export interface GraphSageAnalysis {
       edges: number
       suspects: number
       positive_suspects: number
-      reported_final_validation_f1: number
+      reported_reproduction_f1: number
+      metric_role: string
       reproduced_checkpoint?: {
-        validation_f1: number
+        reproduction_f1: number
+        metric_role: string
         best_epoch: number
         model_seed: number
       }

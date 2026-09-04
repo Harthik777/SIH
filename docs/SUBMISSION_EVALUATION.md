@@ -21,10 +21,10 @@
 | Backend verification | 33 tests passed, 1 integration test conditionally skipped locally | `pytest -q`; hybrid test runs with service containers in CI |
 | Frontend verification | 4 tests passed | `npm test` |
 | Private access boundary | Passed | mandatory JWT mode, analyst/supervisor separation, protected reveal denial for analyst |
-| Model evaluation | Reproducible, claim-bounded | 87-node transductive holdout, confusion matrices, Brier scores, two fixed baselines, high feature/target dependency warning |
+| Model evaluation | Leakage-audited, claim-bounded | Perfect reproduction result quarantined; ten-trial 20% evidence-masking stress F1 `0.825` mean (`0.780–0.849`); field accuracy not established |
 | Hybrid persistence | CI-verified | Real PostgreSQL and Neo4j round trip with two case-isolated graphs |
 
-The deployable NumPy GraphSAGE forward pass was compared across all 434 suspect nodes with the PyTorch Geometric implementation: maximum probability delta `0.0`, with identical classifications. The lightweight artifact enables real checkpoint inference on the free web image while the training notebook and full ML runtime remain available locally.
+The deployable NumPy GraphSAGE forward pass was compared across all 434 suspect nodes with the PyTorch Geometric implementation: maximum probability delta `0.0`, with identical classifications. The lightweight artifact enables real checkpoint inference on the free web image while the training notebook and full ML runtime remain available locally. The version-2 model artifact explicitly records target/input dependency and checkpoint-selection leakage; no perfect metric is presented as field performance.
 
 ## Scale evidence from this machine
 

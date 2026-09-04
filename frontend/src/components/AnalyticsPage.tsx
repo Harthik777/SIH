@@ -48,6 +48,7 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
   }, [graph])
   const graphSageItems = graphSage?.items ?? localGraphSagePreview
   const graphSageStatus = graphSage?.model.status ?? 'checkpoint-required'
+  const stressTest = modelEvaluation?.graphsage.evidence_masking_stress_test
   return (
     <div className="standard-page">
       <div className="page-heading"><div><span className="eyebrow">GRAPH INTELLIGENCE</span><h1>Advanced analytics</h1><p>Structural metrics, model outputs, and behavioral distributions.</p></div><select className="page-select"><option>Last 30 days</option><option>Last 7 days</option><option>All time</option></select></div>
@@ -65,7 +66,7 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
         <section className="panel embedding-panel"><div className="panel-header"><div><span className="eyebrow">DETERMINISTIC VISUAL AID</span><h2>Entity topology field</h2></div><span className="model-chip">NOT AN INFERENCE</span></div><div className="embedding-space">{graph.nodes.slice(0, 58).map((node,i)=><i key={node.id} title={`${node.name} · ${node.type}`} style={{left:`${8+((i*37)%84)}%`,top:`${8+((i*61)%82)}%`,width:`${4+(node.risk%3)*2}px`,height:`${4+(node.risk%3)*2}px`,background:palette[Object.keys(analytics?.entity_types ?? {}).indexOf(node.type) % palette.length] || palette[0],animationDelay:`-${i*.13}s`}}/>)}<span className="cluster-label c1">ACTIVE ENTITIES</span><span className="cluster-label c2">TYPE-COLORED</span><span className="cluster-label c3">DISPLAY ONLY</span></div></section>
         <section className="panel graphsage-panel">
           <div className="panel-header">
-            <div><span className="eyebrow">GRAPH NEURAL NETWORK</span><h2>GraphSAGE suspect risk</h2></div>
+            <div><span className="eyebrow">EXPERIMENTAL GRAPH NEURAL NETWORK</span><h2>GraphSAGE structural triage</h2></div>
             <span className={`model-chip ${graphSageStatus === 'ready' ? 'ready' : 'pending'}`}>{graphSageStatus.replace('-', ' ')}</span>
           </div>
           <div className="graphsage-body">
@@ -74,20 +75,20 @@ export function AnalyticsPage({ graph, investigationId }: { graph: GraphData; in
               <div><small>MODEL</small><strong>2 × 32</strong><em>message-passing layers</em></div>
               <div><small>FEATURES</small><strong>7</strong><em>6 types + degree</em></div>
               <div><small>TRAINING GRAPH</small><strong>1,530</strong><em>nodes · 2,127 edges</em></div>
-              <div><small>PROXY HOLDOUT F1</small><strong>{(modelEvaluation?.graphsage.held_out_node_validation?.metrics.f1 ?? graphSage?.model.training_summary.reproduced_checkpoint?.validation_f1 ?? 0).toFixed(2)}</strong><em>{modelEvaluation?.graphsage.held_out_node_validation?.samples ?? 87} transductive nodes</em></div>
-              <div><small>HOLDOUT BRIER</small><strong>{modelEvaluation?.graphsage.held_out_node_validation?.brier_score?.toFixed(3) ?? '—'}</strong><em>structural proxy calibration</em></div>
-              <div><small>RISK BASELINE F1</small><strong>{modelEvaluation?.fixed_baselines.risk_score_at_least_70.f1.toFixed(2) ?? '—'}</strong><em>fixed transparent comparator</em></div>
+              <div><small>FIELD ACCURACY</small><strong>N/A</strong><em>independent labels required</em></div>
+              <div><small>20% EVIDENCE MASK</small><strong>{stressTest?.summary.f1.mean.toFixed(2) ?? '—'}</strong><em>{stressTest?.trials ?? 10}-trial robustness diagnostic</em></div>
+              <div><small>REPRODUCTION</small><strong>PASS</strong><em>perfect score quarantined from claims</em></div>
             </div>
             <div className="graphsage-ranking">
-              <div className="graphsage-heading"><strong>Top repeat-subject signals</strong><span>{graphSage?.mode === 'graphsage-inference' ? 'MODEL PROBABILITY' : 'STRUCTURAL PREVIEW'}</span></div>
+              <div className="graphsage-heading"><strong>Top structural review signals</strong><span>{graphSage?.mode === 'graphsage-inference' ? 'MODEL SCORE · NOT GUILT RISK' : 'STRUCTURAL PREVIEW'}</span></div>
               {graphSageItems.slice(0, 6).map((item) => {
                 const signal = item.probability === null ? Math.min(100, item.case_neighbors * 25) : item.probability * 100
                 return <div className="graphsage-row" key={item.node_id}><i className={item.derived_label}/><strong>{item.name}<small>{item.case_neighbors} linked case{item.case_neighbors === 1 ? '' : 's'} · degree {item.graph_degree}</small></strong><div><i style={{width:`${signal}%`}}/></div><em>{item.probability === null ? item.derived_label : `${Math.round(signal)}%`}</em></div>
               })}
             </div>
           </div>
-          <div className="model-assurance-bar"><ShieldAlert size={21}/><div><small>MODEL CLAIM PASSPORT</small><strong>Field accuracy: {modelEvaluation?.claim_assurance?.field_accuracy?.replaceAll('-', ' ') ?? 'not established'}</strong><p>{modelEvaluation?.claim_assurance?.dependency_explanation ?? 'The structural proxy is not an independently adjudicated operational outcome.'}</p></div><span><small>FEATURE/TARGET DEPENDENCY</small><strong>{modelEvaluation?.claim_assurance?.feature_target_dependency ?? 'HIGH'}</strong></span><span><small>OPERATIONAL RELEASE</small><strong>BLOCKED</strong></span></div>
-          <p className="model-note">{graphSage?.message ?? 'GraphSAGE architecture loaded. The trained .pt checkpoint is required before this preview becomes model inference.'} Labels are structural proxies—not independently adjudicated outcomes. Outputs support analyst review and must not be treated as evidence of guilt.</p>
+          <div className="model-assurance-bar"><ShieldAlert size={21}/><div><small>MODEL CLAIM PASSPORT</small><strong>Field accuracy: {modelEvaluation?.claim_assurance?.field_accuracy?.replaceAll('-', ' ') ?? 'not established'}</strong><p>{modelEvaluation?.leakage_audit?.conclusion ?? 'The structural proxy is not an independently adjudicated operational outcome.'}</p></div><span><small>LABEL-LEAKAGE RISK</small><strong>{modelEvaluation?.claim_assurance?.feature_target_dependency ?? 'HIGH'}</strong></span><span><small>OPERATIONAL RELEASE</small><strong>BLOCKED</strong></span></div>
+          <p className="model-note">{graphSage?.message ?? 'GraphSAGE architecture loaded. The trained .pt checkpoint is required before this preview becomes model inference.'} The displayed {stressTest ? `${Math.round(stressTest.mask_rate * 100)}% masking result is a missing-evidence stress test` : 'result is a structural diagnostic'}, not field accuracy. Outputs support analyst review and must not be treated as evidence of guilt.</p>
         </section>
       </div>
     </div>

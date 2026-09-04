@@ -5,9 +5,11 @@ from __future__ import annotations
 import json
 import math
 import platform
+import random
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from statistics import mean
 
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
@@ -17,6 +19,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from app.crime_pipeline import load_crime_graph  # noqa: E402
 from app.graphsage import analyze_graph  # noqa: E402
+from app.models import GraphPayload  # noqa: E402
 from sklearn.model_selection import train_test_split  # noqa: E402
 
 
@@ -47,6 +50,86 @@ def classification_metrics(truth: list[int], prediction: list[int]) -> dict[str,
     }
 
 
+def evidence_masking_stress_test(
+    payload: GraphPayload,
+    truth_by_id: dict[str, int],
+    *,
+    mask_rate: float = 0.2,
+    trials: int = 10,
+    first_seed: int = 1000,
+) -> dict[str, object]:
+    """Measure sensitivity when a fixed share of person-case evidence is unavailable.
+
+    This deliberately is not called a validation split: the checkpoint has already
+    seen the supplied graph.  The test only quantifies robustness to missing source
+    evidence while retaining the complete-graph structural proxy as the reference.
+    """
+    nodes = {node.id: node for node in payload.nodes}
+    case_edge_indices = [
+        index
+        for index, edge in enumerate(payload.edges)
+        if {nodes[edge.source].type, nodes[edge.target].type} == {"person", "event"}
+    ]
+    masked_count = round(len(case_edge_indices) * mask_rate)
+    node_ids = list(truth_by_id)
+    trial_results: list[dict[str, object]] = []
+    for offset in range(trials):
+        seed = first_seed + offset
+        removed_indices = set(random.Random(seed).sample(case_edge_indices, masked_count))
+        masked_payload = GraphPayload(
+            nodes=payload.nodes,
+            edges=[edge for index, edge in enumerate(payload.edges) if index not in removed_indices],
+        )
+        masked_result = analyze_graph(masked_payload, 10_000)
+        prediction_by_id = {
+            row["node_id"]: int(row["derived_label"] == "suspicious")
+            for row in masked_result["items"]
+        }
+        probability_by_id = {row["node_id"]: row["probability"] for row in masked_result["items"]}
+        truth = [truth_by_id[node_id] for node_id in node_ids]
+        prediction = [prediction_by_id[node_id] for node_id in node_ids]
+        probabilities = [probability_by_id[node_id] for node_id in node_ids]
+        trial_results.append(
+            {
+                "seed": seed,
+                "masked_case_edges": masked_count,
+                "runtime_mode": masked_result["mode"],
+                "metrics": classification_metrics(truth, prediction),
+                "brier_score": brier_score(truth, probabilities) if all(value is not None for value in probabilities) else None,
+            }
+        )
+
+    metric_names = ("precision", "recall", "f1", "accuracy")
+    summary = {
+        metric: {
+            "mean": round(mean(float(trial["metrics"][metric]) for trial in trial_results), 6),
+            "min": round(min(float(trial["metrics"][metric]) for trial in trial_results), 6),
+            "max": round(max(float(trial["metrics"][metric]) for trial in trial_results), 6),
+        }
+        for metric in metric_names
+    }
+    brier_values = [float(trial["brier_score"]) for trial in trial_results if trial["brier_score"] is not None]
+    return {
+        "purpose": "diagnostic robustness to incomplete case-link evidence; not field validation",
+        "reference_target": "complete supplied-graph structural proxy",
+        "masking_unit": "person-event evidence edges",
+        "mask_rate": mask_rate,
+        "case_edges": len(case_edge_indices),
+        "masked_case_edges_per_trial": masked_count,
+        "trials": trials,
+        "seed_range": [first_seed, first_seed + trials - 1],
+        "summary": summary,
+        "brier_score": {
+            "mean": round(mean(brier_values), 6),
+            "min": round(min(brier_values), 6),
+            "max": round(max(brier_values), 6),
+        } if brier_values else None,
+        "trial_results": trial_results,
+        "independent_outcome_labels": False,
+        "generalization_claim_allowed": False,
+    }
+
+
 def main() -> None:
     payload = load_crime_graph()
     result = analyze_graph(payload, 10_000)
@@ -70,10 +153,12 @@ def main() -> None:
     validation_truth = [1 if row["case_neighbors"] >= 2 else 0 for row in validation_rows]
     validation_prediction = [1 if row["derived_label"] == "suspicious" else 0 for row in validation_rows]
     validation_probabilities = [float(row["probability"]) for row in validation_rows if row["probability"] is not None]
+    truth_by_id = {row["node_id"]: int(row["case_neighbors"] >= 2) for row in rows}
+    stress_test = evidence_masking_stress_test(payload, truth_by_id)
     artifact = {
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "classification": "supplied-corpus-model-evaluation",
+        "classification": "supplied-corpus-diagnostic-evaluation",
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
         "dataset": {
             "source": "crime_dataset.csv transformed into crime_kg_nodes_edges.json",
@@ -84,30 +169,46 @@ def main() -> None:
         "graphsage": {
             "runtime_mode": result["mode"],
             "threshold": 0.5,
-            "metrics_on_full_supplied_graph": classification_metrics(truth, model_prediction),
-            "brier_score": brier,
-            "reported_reproduced_validation_f1": result["model"]["training_summary"]["reproduced_checkpoint"]["validation_f1"],
-            "held_out_node_validation": {
-                "samples": len(validation_rows),
-                "positive_samples": sum(validation_truth),
-                "split_seed": 42,
-                "split_type": "fixed stratified transductive node holdout",
-                "metrics": classification_metrics(validation_truth, validation_prediction),
-                "brier_score": brier_score(validation_truth, validation_probabilities),
-                "independent_outcome_labels": False,
+            "reproduction_diagnostic": {
+                "role": "checkpoint reproduction only; not an independent performance estimate",
+                "full_supplied_graph": {
+                    "metrics": classification_metrics(truth, model_prediction),
+                    "brier_score": brier,
+                },
+                "checkpoint_selection_partition": {
+                    "samples": len(validation_rows),
+                    "positive_samples": sum(validation_truth),
+                    "split_seed": 42,
+                    "split_type": "fixed stratified transductive node partition",
+                    "metrics": classification_metrics(validation_truth, validation_prediction),
+                    "brier_score": brier_score(validation_truth, validation_probabilities),
+                    "independent_outcome_labels": False,
+                    "used_for_checkpoint_selection": True,
+                },
+                "reported_reproduced_f1": result["model"]["training_summary"]["reproduced_checkpoint"]["reproduction_f1"],
             },
+            "evidence_masking_stress_test": stress_test,
         },
         "fixed_baselines": {
             "risk_score_at_least_70": classification_metrics(truth, risk_baseline),
             "graph_degree_at_least_4": classification_metrics(truth, degree_baseline),
         },
         "decision_policy": "Model outputs are prioritization signals; no automated identity, guilt, arrest, or enforcement decision is permitted.",
+        "leakage_audit": {
+            "status": "fails-independent-generalization-criteria",
+            "target_derived_from_input_graph": True,
+            "checkpoint_selected_on_reported_partition": True,
+            "independent_labels": False,
+            "identity_disjoint_test": False,
+            "temporal_holdout": False,
+            "conclusion": "The perfect reproduction score is expected under the supplied structural label design and is not a valid field-performance headline.",
+        },
         "claim_assurance": {
             "field_accuracy": "not-established",
             "operational_use": "prohibited-without-independent-validation",
             "feature_target_dependency": "high",
             "dependency_explanation": "The target is defined from case-neighbor topology while graph topology and normalized degree are model inputs. The metric demonstrates reproducibility of a structural rule, not prediction of criminal conduct.",
-            "permitted_claim": "The supplied GraphSAGE notebook and checkpoint are reproducible for structural suspect prioritization on the supplied demonstration graph.",
+            "permitted_claim": "The supplied checkpoint is reproducible, and its sensitivity to deliberately masked case-link evidence is measured on the demonstration graph.",
             "prohibited_claims": [
                 "real-world crime prediction accuracy",
                 "proof of identity, intent, culpability, or guilt",
@@ -117,7 +218,9 @@ def main() -> None:
         },
         "limitations": [
             "The labels are structural proxy labels derived from the same graph, not independently adjudicated criminal outcomes.",
+            "The original validation partition was used to select the reproduced checkpoint, so its perfect F1 is a reproduction diagnostic rather than an unbiased performance estimate.",
             "The supplied corpus is demonstration data and does not establish field generalization, fairness, or causal validity.",
+            "The evidence-masking experiment is a robustness stress test against the complete-graph proxy, not an independent test set.",
             "Thresholds were not tuned on the reported full-graph metrics; external labelled evaluation is required before operational use.",
             "Protected-person nodes are excluded from model features and predictions.",
         ],

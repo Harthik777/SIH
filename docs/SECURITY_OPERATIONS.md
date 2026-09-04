@@ -41,6 +41,10 @@ Protected-person reveal still requires a reason and authorization reference, and
 - `/metrics`: Prometheus-compatible counters and latency gauge.
 - Every HTTP response carries `X-Request-ID` and `X-Response-Time-Ms`.
 
+## Audit ledger choice
+
+Sentinel uses an append-only SHA-256 hash chain because the current deployment has one accountable operator and must work offline on one machine. A blockchain would replicate the same data and consensus machinery without introducing an independent trust domain. Record the verified chain head outside the application host for stronger rewrite detection. See `docs/LEDGER_DECISION.md` for the threat model, limitations, and the exact trigger for a future external anchor or permissioned consortium ledger.
+
 ## Backup
 
 Run `powershell -ExecutionPolicy Bypass -File scripts/backup_state.ps1`. The archive contains investigation snapshots, uploads and a SHA-256 manifest. Store backups on approved encrypted media outside the application host and test restoration under the agency's retention policy.

@@ -99,6 +99,13 @@ def test_graphsage_endpoint_reports_real_or_preview_mode_explicitly():
     assert response.status_code == 200
     payload = response.json()
     assert payload["model"]["architecture"]["input_features"] == 7
+    training_summary = payload["model"]["training_summary"]
+    assert training_summary["reported_reproduction_f1"] == 1.0
+    assert "reported_final_validation_f1" not in training_summary
+    assert "reproduction" in training_summary["metric_role"]
+    if training_summary["reproduced_checkpoint"]:
+        assert "reproduction_f1" in training_summary["reproduced_checkpoint"]
+        assert "validation_f1" not in training_summary["reproduced_checkpoint"]
     assert len(payload["items"]) == 3
     artifacts = payload["model"]["artifacts"]
     if artifacts["checkpoint_available"] and (artifacts["runtime_available"] or artifacts["lightweight_runtime_available"]):
@@ -528,11 +535,21 @@ def test_password_hashing_and_binary_disguised_as_csv_are_guarded():
 
 def test_model_evaluation_exposes_baselines_and_limitations():
     payload = client.get("/api/benchmarks/model").json()
+    assert payload["schema_version"] == 2
     assert payload["dataset"]["suspects"] == 434
-    assert payload["graphsage"]["metrics_on_full_supplied_graph"]["f1"] >= 0
+    reproduction = payload["graphsage"]["reproduction_diagnostic"]
+    assert reproduction["full_supplied_graph"]["metrics"]["f1"] >= 0
     assert set(payload["fixed_baselines"]) == {"risk_score_at_least_70", "graph_degree_at_least_4"}
-    assert payload["graphsage"]["held_out_node_validation"]["samples"] == 87
-    assert payload["graphsage"]["held_out_node_validation"]["independent_outcome_labels"] is False
+    selection_partition = reproduction["checkpoint_selection_partition"]
+    assert selection_partition["samples"] == 87
+    assert selection_partition["independent_outcome_labels"] is False
+    assert selection_partition["used_for_checkpoint_selection"] is True
+    stress = payload["graphsage"]["evidence_masking_stress_test"]
+    assert stress["mask_rate"] == 0.2
+    assert stress["trials"] == 10
+    assert 0 < stress["summary"]["f1"]["mean"] < 1
+    assert stress["generalization_claim_allowed"] is False
+    assert payload["leakage_audit"]["status"] == "fails-independent-generalization-criteria"
     assert payload["claim_assurance"]["field_accuracy"] == "not-established"
     assert payload["claim_assurance"]["feature_target_dependency"] == "high"
     assert any("not independently adjudicated" in item for item in payload["limitations"])

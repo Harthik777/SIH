@@ -13,9 +13,13 @@ The bundled two-layer GraphSAGE checkpoint ranks suspect nodes for analyst revie
 
 ## Evaluation
 
-Run `python backend/scripts/evaluate_model.py` to regenerate `backend/benchmarks/model_evaluation.json`. The artifact reports confusion matrices, precision, recall, F1, accuracy, Brier score and two fixed transparent baselines. It separately exposes the 87-node fixed stratified transductive holdout rather than presenting only full-corpus metrics.
+Run `python backend/scripts/evaluate_model.py` to regenerate `backend/benchmarks/model_evaluation.json`. The version-2 artifact contains three deliberately separated layers:
 
-The positive label means “connected to at least two case nodes.” It is a structural proxy generated from the same graph—not an independently adjudicated criminal-outcome label. Graph topology and normalized degree are also model inputs, so the feature/target dependency is explicitly rated **high**. Consequently, the reproduced validation score demonstrates checkpoint reproducibility for this structural rule, not real-world crime prediction or generalization.
+1. A **leakage audit** records that the target comes from input-graph topology, the reported partition selected the checkpoint, labels are not independent, and no temporal or identity-disjoint test exists.
+2. A **reproduction diagnostic** preserves the supplied notebook/checkpoint result for provenance, not as an unbiased accuracy estimate.
+3. A **missing-evidence stress test** masks 20% of person-case links over ten fixed seeds and measures sensitivity against the complete-graph structural proxy. The current mean proxy F1 is `0.825` (range `0.780–0.849`), with mean Brier score `0.103`.
+
+The positive label means “connected to at least two case nodes.” It is a structural proxy generated from the same graph—not an independently adjudicated criminal-outcome label. Graph topology and normalized degree are also model inputs, so the feature/target dependency is explicitly rated **high**. The original perfect result is further biased by checkpoint selection on the reported partition. Consequently, it demonstrates checkpoint reproducibility for this structural rule, not real-world crime prediction or generalization. The masking test is a robustness diagnostic, not a substitute for an external test set.
 
 ## Claim passport
 

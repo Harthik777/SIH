@@ -74,6 +74,12 @@ def model_status() -> dict[str, Any]:
         message = "Checkpoint found; install the optional ML requirements to enable inference."
 
     reproduced_training = json.loads(TRAINING_METADATA_PATH.read_text(encoding="utf-8")) if TRAINING_METADATA_PATH.exists() else None
+    if reproduced_training and "validation_f1" in reproduced_training:
+        reproduced_training = {
+            **{key: value for key, value in reproduced_training.items() if key != "validation_f1"},
+            "reproduction_f1": reproduced_training["validation_f1"],
+            "metric_role": "checkpoint reproduction only; not an independent performance estimate",
+        }
     return {
         "id": "graphsage-suspect-risk-v1",
         "name": "GraphSAGE Suspect Risk",
@@ -95,7 +101,8 @@ def model_status() -> dict[str, Any]:
             "suspects": 434,
             "positive_suspects": 61,
             "validation_suspects": 87,
-            "reported_final_validation_f1": 1.0,
+            "reported_reproduction_f1": 1.0,
+            "metric_role": "structural-proxy checkpoint reproduction; excluded from field-performance claims",
             "label_rule": "suspicious when connected to at least two case nodes",
             "reproduced_checkpoint": reproduced_training,
         },

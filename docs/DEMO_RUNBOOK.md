@@ -39,7 +39,7 @@ Sentinel fuses disconnected evidence into proof-carrying investigative leads: ev
 5. **Show the full investigation workspace (60 seconds)**
    - Open **Graph explorer** and search for `Coordinator C-04`.
    - Show links across phones, accounts, the shared vehicle, organization, locations, and events.
-   - Open **Advanced analytics** to show centrality, topology, and the model claim passport. Explain that the 1.00 score is a reproducible structural-proxy result with high feature/target dependency—not field accuracy—and that Operation Suraksha is outside the training schema.
+   - Open **Advanced analytics** to show centrality, topology, and the model claim passport. Point to **Field accuracy: N/A**, the high label-leakage risk, and the ten-trial 20% evidence-masking result (`0.825` mean proxy F1). Explain that the perfect notebook result is quarantined as reproduction metadata and that Operation Suraksha is outside the training schema.
 
 6. **Show transfer to new evidence (45 seconds)**
    - Open **Data ingestion** and explain the CSV/JSON/TXT/XML/RDF/TTL path.
